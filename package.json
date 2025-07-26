@@ -1,0 +1,25 @@
+{
+  "name": "luna_iot_server",
+  "version": "1.0.0",
+  "description": "This is a server of Luna Iot",
+  "keywords": [
+    "Luna",
+    "Iot"
+  ],
+  "license": "ISC",
+  "author": "Ravi Pangali",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "elasticsearch": "^16.7.3",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.2",
+    "net": "^1.0.2",
+    "socket.io": "^4.8.1"
+  }
+}
