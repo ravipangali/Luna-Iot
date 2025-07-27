@@ -13,7 +13,7 @@ class DataHandler {
         ]
     }
 
-    handleData(data) {
+    handleData(data, socket) {
         this.data = data
         const hexData = data.toString('hex');
         const usedProtcol = this.identifyer(hexData)
@@ -22,7 +22,7 @@ class DataHandler {
         
         
         if (usedProtcol === 'gt06') {
-            const parsedData = new gt06_handler.GT06Handler(this.data);
+            const parsedData = new gt06_handler.GT06Handler(this.data, socket);
         }
         
     }

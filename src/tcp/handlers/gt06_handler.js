@@ -3,7 +3,7 @@ const Gt06 = require('gt06x22')
 
 class GT06Handler {
 
-    constructor(data) {
+    constructor(data, socket) {
         var gt06 = new Gt06();
 
         try {
@@ -14,7 +14,7 @@ class GT06Handler {
         }
 
         if (gt06.expectsResponse) {
-            client.write(gt06.responseMsg);
+            socket.write(gt06.responseMsg);
         }
 
         gt06.msgBuffer.forEach(msg => {

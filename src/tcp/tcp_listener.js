@@ -27,7 +27,7 @@ class TCPListener {
 
                 // Data handling
                 let datahandler = new tcpHandler.DataHandler();
-                datahandler.handleData(data);
+                datahandler.handleData(data, socket);
             });
 
             // Handle connection close
