@@ -21,7 +21,7 @@ class DataHandler {
         console.log(usedProtcol);
         
         
-        if (usedProtcol === 'gt06') {
+        if (usedProtcol === 'gt06' || usedProtcol === null) {
             const parsedData = new gt06_handler.GT06Handler(this.data, socket);
         }
         
