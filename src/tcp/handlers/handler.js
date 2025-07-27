@@ -14,6 +14,7 @@ class DataHandler {
     }
 
     handleData(data) {
+        this.data = data
         const hexData = data.toString('hex');
         const usedProtcol = this.identifyer(hexData)
 
