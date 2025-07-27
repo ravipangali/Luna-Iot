@@ -21,7 +21,7 @@ class GT06Handler {
             if (msg.event && msg.event.string === 'login' && msg.imei) {
                 socket.deviceImei = msg.imei;
             } else {
-                imei = socket.deviceImei || 'Unknown';
+                msg.imei = socket.deviceImei || 'Unknown';
             }
 
             console.log(msg);
