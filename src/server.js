@@ -26,6 +26,13 @@ if (cluster.isPrimary) {
     const server = net.createServer();
     var gt06 = new Gt06();
 
+    Gt06.prototype._isHeaderValid = function (buffer) {
+        // Accept both 7878 and 7979 as valid headers
+        return buffer.slice(0, 2).equals(Buffer.from([0x78, 0x78])) ||
+               buffer.slice(0, 2).equals(Buffer.from([0x79, 0x79]));
+    };
+      
+
     server.on('connection', (socket) => {
         socket.setKeepAlive(true);
 
