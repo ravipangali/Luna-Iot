@@ -1,5 +1,6 @@
 const net = require('net')
 const tcpHandler = require('./handlers/handler')
+const gt06Handler = require('./handlers/gt06_handler')
 
 class TCPListener {
     constructor() {
@@ -33,12 +34,16 @@ class TCPListener {
             // Handle connection close
             socket.on('close', () => {
                 console.log(`[Worker ${process.pid}] Connection closed from ${connectionId}`);
+                // Clean up IMEI data for this connection
+                gt06Handler.GT06Handler.clearIMEIForConnection(socket);
                 this.connections.delete(connectionId);
             });
 
             // Handle errors
             socket.on('error', (err) => {
                 console.error(`[Worker ${process.pid}] Socket error for ${connectionId}: `, err.message);
+                // Clean up IMEI data for this connection
+                gt06Handler.GT06Handler.clearIMEIForConnection(socket);
                 this.connections.delete(connectionId);
             });
         });
