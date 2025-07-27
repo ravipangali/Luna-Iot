@@ -25,22 +25,24 @@ if (cluster.isPrimary) {
     // Worker process have their own server
     const server = net.createServer();
     var gt06 = new Gt06();
-
-    Gt06.prototype._isHeaderValid = function (buffer) {
-        // Accept both 7878 and 7979 as valid headers
-        return buffer.slice(0, 2).equals(Buffer.from([0x78, 0x78])) ||
-               buffer.slice(0, 2).equals(Buffer.from([0x79, 0x79]));
-    };
-      
+    
 
     server.on('connection', (socket) => {
         socket.setKeepAlive(true);
 
         socket.on('data', (data) => {
             try {
+                // --- Step 1: Replace 7979 with 7878 if detected at start ---
+                if (data[0] === 0x79 && data[1] === 0x79) {
+                  const modified = Buffer.from(data); // Copy the original buffer
+                  modified[0] = 0x78;
+                  modified[1] = 0x78;
+                  data = modified;
+                }
+          
+                // --- Step 2: Try parsing with gt06 ---
                 gt06.parse(data);
-              }
-              catch (e) {
+              } catch (e) {
                 console.log('err', e);
                 return;
               }
