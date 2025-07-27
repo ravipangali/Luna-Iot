@@ -24,10 +24,20 @@ class GT06Handler {
                 msg.imei = socket.deviceImei || 'Unknown';
             }
 
-            console.log(msg);
+            handle(msg);
         });
 
         gt06.clearMsgBuffer();
+    }
+
+    handleData(data) {
+        if (msg.event.string === 'status') {
+            
+        }
+        if (msg.event.string === 'location') {}
+        else {
+            console.log('SORRY WE DIDNT HANDLE THAT');
+        }
     }
 
 }

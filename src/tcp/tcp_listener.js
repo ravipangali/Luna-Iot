@@ -10,7 +10,7 @@ class TCPListener {
     startServer(port = 7777) {
         this.server = net.createServer((socket) => {
             const connectionId = `${socket.remoteAddress}:${socket.remotePort}`;
-            console.log(`[Worker ${process.pid}] New connection from ${connectionId}`);
+            console.log(`${new Date().toISOString()} => NEW CLIENT CONNECTED`);
             
             // Store connection info
             this.connections.set(connectionId, {
@@ -23,8 +23,6 @@ class TCPListener {
 
             // Handle incoming data
             socket.on('data', (data) => {
-                console.log(`[Worker ${process.pid}] Received data from ${connectionId}: `,data.toString('hex'));
-
                 // Data handling
                 let datahandler = new tcpHandler.DataHandler();
                 datahandler.handleData(data, socket);
@@ -32,13 +30,13 @@ class TCPListener {
 
             // Handle connection close
             socket.on('close', () => {
-                console.log(`[Worker ${process.pid}] Connection closed from ${connectionId}`);
+                console.log(`${new Date().toISOString()} => CLIENT DISCONNECTED`);
                 this.connections.delete(connectionId);
             });
 
             // Handle errors
             socket.on('error', (err) => {
-                console.error(`[Worker ${process.pid}] Socket error for ${connectionId}: `, err.message);
+                console.error(`${new Date().toISOString} => CLIENT ERROR =>`, err.message);
                 this.connections.delete(connectionId);
             });
         });

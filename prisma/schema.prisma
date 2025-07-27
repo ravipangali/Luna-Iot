@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum SimType {
+  NTC
+  Ncell
+}
+
+enum ProtocolType {
+  GT06
+  FMB003
+}
+
+enum DeviceModelType {
+  EC08
+  VL149
+}
+
+enum VehicleType {
+  Ambulance
+  Bike
+  Boat
+  Bulldozer
+  Bus
+  Car
+  Crane
+  Cycle
+  Dumper
+  Garbage
+  Jcb
+  Jeep
+  Mixer
+  Mpv
+  Pickup
+  SchoolBus
+  Suv
+  Tanker
+  Tempo
+  Tractor
+  Train
+  Truck
+  Van
+}
+
+model Device {
+  id       Int             @id @default(autoincrement())
+  imei     String          @unique @db.Char(15)
+  phone    String          @db.VarChar(20)
+  sim      SimType
+  protocol ProtocolType    @default(GT06)
+  iccid    String          @db.VarChar(255)
+  model    DeviceModelType
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  locations Location[]
+  statuses  Status[]
+  vehicles  Vehicle[]
+
+  @@map("devices")
+}
+
+model Vehicle {
+  id          Int         @id @default(autoincrement())
+  imei        String      @unique @db.Char(15)
+  device      Device      @relation(fields: [deviceId], references: [id])
+  deviceId    Int         @map("device_id")
+  name        String      @db.VarChar(255)
+  vehicleNo   String      @map("vehicle_no") @db.VarChar(255)
+  vehicleType VehicleType @default(Car) @map("vehicle_type")
+  odometer    Decimal     @db.Decimal(10, 2)
+  mileage     Decimal     @db.Decimal(10, 2)
+  minimumFuel Decimal     @map("minimum_fuel") @db.Decimal(10, 2)
+  speedLimit  Int         @default(60) @map("speed_limit")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("vehicles")
+}
+
+model Location {
+  id          Int      @id @default(autoincrement())
+  device      Device   @relation(fields: [deviceId], references: [id])
+  deviceId    Int      @map("device_id")
+  imei        String   @db.Char(15)
+  latitude    Decimal  @db.Decimal(10, 8)
+  longitude   Decimal  @db.Decimal(11, 8)
+  speed       Int
+  course      Int
+  realTimeGps Boolean  @map("real_time_gps")
+  satellite   Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([deviceId])
+  @@index([createdAt])
+  @@index([latitude, longitude])
+  @@map("locations")
+}
+
+model Status {
+  id        Int      @id @default(autoincrement())
+  device    Device   @relation(fields: [deviceId], references: [id])
+  deviceId  Int      @map("device_id")
+  imei      String   @db.Char(15)
+  battery   Int
+  signal    Int
+  ignition  Boolean
+  charging  Boolean
+  relay     Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([deviceId])
+  @@index([createdAt])
+  @@map("statuses")
+}

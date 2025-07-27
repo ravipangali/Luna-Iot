@@ -1,0 +1,114 @@
+const prisma = require('../prisma')
+
+class VehicleModel {
+
+    // Create new vehicle
+    async createData(data) {
+        try {
+            const vehicle = await prisma.getClient().vehicle.upsert({
+                where: { imei: data.imei },
+                update: {
+                    imei: data.imei,
+                    deviceId: data.deviceId,
+                    name: data.name,
+                    vehicleNo: data.vehicleNo,
+                    vehicleType: data.vehicleType,
+                    odometer: data.odometer,
+                    mileage: data.mileage,
+                    minimumFuel: data.minimumFuel,
+                    speedLimit: data.speedLimit,
+                    updatedAt: new Date()
+                },
+                create: {
+                    imei: data.imei,
+                    deviceId: data.deviceId,
+                    name: data.name,
+                    vehicleNo: data.vehicleNo,
+                    vehicleType: data.vehicleType,
+                    odometer: data.odometer,
+                    mileage: data.mileage,
+                    minimumFuel: data.minimumFuel,
+                    speedLimit: data.speedLimit,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+            });
+            return vehicle;
+        } catch (error) {
+            console.error('VEHICLES CREATION ERROR', error);
+            throw error;
+        }
+    }
+
+    // Get all vehicles
+    async getAllData() {
+        try {
+            return await prisma.getClient().vehicle.findMany();
+        } catch (error) {
+            console.error('ERROR FETCHING ALL VEHICLESS: ',error);
+            throw error;
+        }
+    }
+
+    // Get vehicle by imei
+    async getDataByImei(imei) {
+        try {
+            const vehicle = await prisma.getClient().vehicle.findUnique({where: {imei}});
+            return vehicle;
+        } catch (error) {
+            console.error('VEHICLES FETCH ERROR', error);
+            throw error;
+        }
+    }
+
+    // Get vehicle by id
+    async getDataById(id) {
+        try {
+            const vehicle = await prisma.getClient().vehicle.findUnique({where: {id}});
+            return vehicle;
+        } catch (error) {
+            console.error('VEHICLES FETCH ERROR', error);
+            throw error;
+        }
+    }
+    
+
+    // Update vehicle
+    async updateData(imei, data) {
+        try {
+            const allowedFields = ['imei', 'deviceId', 'name', 'vehicleNo', 'vehicleType', 'odometer', 'mileage', 'minimumFuel', 'speedLimit'];
+            const updateData = {};
+
+            for (const [key, value] of Object.entries(data)) {
+                if (allowedFields.includes(key)) {
+                    updateData[key] = value;
+                }
+            }
+
+            if (Object.keys(updateData).length === 0) {
+                return null
+            }
+
+            return await prisma.getClient().vehicle.update({
+                where: {imei},
+                data: updateData
+            });
+        } catch (error) {
+            console.error('ERROR UPDATE VEHICLES: ',error);
+            throw error;
+        }
+    }
+
+    // Delete vehicle
+    async deleteData(imei) {
+        try {
+            const result = await prisma.getClient().vehicle.delete({where: {imei}});
+            return result;
+        } catch (error) {
+            console.error('ERROR DELETE VEHICLE: ',error);
+            throw error;
+        }
+    }
+}
+
+module.exports = VehicleModel
