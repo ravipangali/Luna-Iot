@@ -18,7 +18,7 @@ class DataHandler {
         const usedProtcol = this.identifyer(this.data)
         
         if (usedProtcol === 'gt06') {
-            const parsedData = gt06_handler.GT06Handler(this.data);
+            const parsedData = new gt06_handler.GT06Handler(this.data);
         }
         
     }
