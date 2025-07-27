@@ -1,3 +1,5 @@
+const gt06_handler = require('./gt06_handler')
+
 class DataHandler {
 
     constructor() {
@@ -13,9 +15,11 @@ class DataHandler {
 
     handleData(data) {
         this.data = data.toString('hex');
-        console.log(this.data);
         const usedProtcol = this.identifyer(this.data)
-        console.log(usedProtcol);
+        
+        if (usedProtcol === 'gt06') {
+            const parsedData = gt06_handler.GT06Handler(this.data);
+        }
         
     }
 

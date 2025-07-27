@@ -23,7 +23,7 @@ class TCPListener {
 
             // Handle incoming data
             socket.on('data', (data) => {
-                console.log(`[Worker ${process.pid}] Received data from ${connectionId}: `,data.toString());
+                console.log(`[Worker ${process.pid}] Received data from ${connectionId}: `,data.toString('hex'));
 
                 // Data handling
                 let datahandler = new tcpHandler.DataHandler();
