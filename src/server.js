@@ -35,11 +35,13 @@ if (cluster.isPrimary) {
                 console.log('Raw data: ', data.toString('hex'));
                 // --- Step 1: Replace 7979 with 7878 if detected at start ---
                 if (data[0] === 0x79 && data[1] === 0x79) {
-                  const modified = Buffer.from(data); // Copy the original buffer
-                  modified[0] = 0x78;
-                  modified[1] = 0x78;
-                  data = modified;
+                    const modified = Buffer.from(data); // Copy the original buffer
+                    modified[0] = 0x78;
+                    modified[1] = 0x78;
+                    data = modified;
                 }
+                
+                console.log('Modified Raw data: ', data.toString('hex'));
           
                 // --- Step 2: Try parsing with gt06 ---
                 gt06.parse(data);
