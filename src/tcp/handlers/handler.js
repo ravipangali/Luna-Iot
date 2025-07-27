@@ -19,8 +19,8 @@ class DataHandler {
 
     identifyer(data) {
         for (const protocol of this.protocols) {
-            if (protocol.start.includes(data.slice(0, 3).toString('hex'))) {
-                console.log(protocol.name)
+            if (data.startsWith(protocol.start[0]) || data.startsWith(protocol.start[1])) {
+                console.log('Protocol is: ',protocol.name)
                 return protocol.name;
             }
         }
