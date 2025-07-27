@@ -3,7 +3,7 @@ const Gt06 = require('gt06x22')
 
 class GT06Handler {
 
-    handler(data) {
+    constructor(data) {
         var gt06 = new Gt06();
 
         try {

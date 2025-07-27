@@ -16,6 +16,9 @@ class DataHandler {
     handleData(data) {
         this.data = data.toString('hex');
         const usedProtcol = this.identifyer(this.data)
+
+        console.log(usedProtcol);
+        
         
         if (usedProtcol === 'gt06') {
             const parsedData = new gt06_handler.GT06Handler(this.data);
