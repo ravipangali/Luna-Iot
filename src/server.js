@@ -1,6 +1,7 @@
 const cluster = require('cluster');
 const os = require('os');
 const net = require('net');
+const Gt06 = require('./gt06');
 
 const TCP_PORT = process.env.TCP_PORT || 7777;
 const WORKERS = os.cpus().length;
