@@ -1,118 +1,59 @@
-const express = require('express');
-const cors = require('cors');
+const cluster = require('cluster');
+const os = require('os');
 const net = require('net');
-const path = require('path');
-const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 
-// Main thread - orchestrates both servers
-if (isMainThread) {
-    console.log('Starting Luna iot server with multi threading...');
+const TCP_PORT = process.env.TCP_PORT || 7777;
+const WORKERS = os.cpus().length;
 
-    // Create API Server Worker
-    const apiWorker = new Worker(__filename, {
-        workerData: { type: 'api' }
-    });
+console.log('WORKERS CPU LENGth: ', WORKERS);
 
-    // Create TCP Server Worker
-    const tcpWorker = new Worker(__filename, {
-        workerData: { type: 'tcp' }
-    });
+if (cluster.isPrimary) {
+    console.log(`Master ${process.pid} is running`);
 
-    // Handle API Worker Messages
-    apiWorker.on('message', (message) => {
-        console.log('API Worker Message:', message);
-    });
-
-    apiWorker.on('error', (error) => {
-        console.log('API Worker Error:', error);
-    });
-
-    // Handle TCP Worker messages
-    tcpWorker.on('message', (message) => {
-        console.log('TCP Server: ', message);
-    });
-
-    tcpWorker.on('error', (error) => {
-        console.log('TCP Worker Error:', error);
-    });
-
-    // Graceful Shutdown
-    process.on('SIGINT', () => {
-        console.log('Shutting down servers...');
-        apiWorker.terminate();
-        tcpWorker.terminate();
-        process.exit(0);
-    });
-
-    console.log('Main thread initialized - both servers starting...');
-} else {
-    const {type} = workerData;
-
-    if (type === 'api') {
-        // API Server Worker
-        const app = express();
-        const PORT = process.env.API_PORT || 7070;
-
-        // Middleware
-        app.use(cors());
-        app.use(express.json());
-        app.use(express.urlencoded({extended: true}));
-
-        // Health check point
-        app.get('/health', (req, res) => {
-            res.json({
-                status: 'healthy',
-                server: 'API Server',
-                timestamp: new Date().toISOString(),
-                thread: 'API Worker'
-            });
-        });
-
-        app.listen(PORT, () => {
-            parentPort.postMessage('API Server running on port ' + PORT);
-            console.log('API Server listening on port ' + PORT);
-        });
-    } else if (type === 'tcp') {
-        // TCP Server Worker
-        const PORT = process.env.TCP_PORT || 7777;
-
-        const tcpServer = net.createServer((socket) => {
-
-            const clientAddress = `${socket.remoteAddress}:${socket.remotePort}`;
-            parentPort.postMessage(`TCP Client connected: ${clientAddress}`);
-
-            // Handle incoming data
-            socket.on('data', (data) => {
-                const message = data.toString().trim();
-                parentPort.postMessage(`TCP Data received: ${message}`);
-                console.log(`TCP Data from ${clientAddress}: ${message}`);
-
-                // Echo back to client
-                socket.write(`Server received: ${message}\n`);
-            });
-
-            // Handle client disconnect
-            socket.on('end', () => {
-                parentPort.postMessage(`TCP Client disconnected: ${clientAddress}`);
-                console.log(`TCP Client disconnected: ${clientAddress}`);
-            });
-
-            // Handle connection errors
-            socket.on('error', (err) => {
-                parentPort.postMessage(`TCP Client error: ${err.message}`);
-                console.log(`TCP Client error: ${err.message}`);
-            });
-        });
-
-        // Start TCP Server
-        tcpServer.listen(PORT, () => {
-            parentPort.postMessage('TCP Server running on port ' + PORT);
-            console.log('TCP Server listening on port ' + PORT);
-        });
-
-        // Handle server errors
-        tcpServer.on('error', (err) => {
-            parentPort.postMessage(`TCP Server error: ${err.message}`);
-        });
+    // Fork Workers
+    for (let i =0 ; i < WORKERS; i++) {
+        cluster.fork();
     }
+
+    cluster.on('exit', (worker) => {
+        console.log(`Worker ${worker.process.pid} died. Restarting...`);
+        cluster.fork();
+    });
+
+} else {
+    // Worker process have their own server
+    const server = net.createServer();
+    var gt06 = new Gt06();
+
+    server.on('connection', (socket) => {
+        socket.setKeepAlive(true);
+
+        socket.on('data', (data) => {
+            try {
+                gt06.parse(data);
+              }
+              catch (e) {
+                console.log('err', e);
+                return;
+              }
+          
+              if (gt06.expectsResponse) {
+                socket.write(gt06.responseMsg);
+              }
+          
+              gt06.msgBuffer.forEach(msg => {
+                console.log(msg);
+              });
+          
+              gt06.clearMsgBuffer();
+        });
+
+        socket.on('error', (err) => {
+            console.error('Socket error: ',err.message);
+        });
+    });
+
+    server.listen(TCP_PORT, () => {
+        console.log(`Worker ${process.pid} listening on port ${TCP_PORT}`)
+    });
 }
