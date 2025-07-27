@@ -15,12 +15,13 @@ class DataHandler {
         this.data = data.toString('hex');
         console.log(this.data);
         const usedProtcol = this.identifyer(this.data)
+        console.log(usedProtcol);
+        
     }
 
     identifyer(data) {
         for (const protocol of this.protocols) {
             if (data.startsWith(protocol.start[0]) || data.startsWith(protocol.start[1])) {
-                console.log('Protocol is: ',protocol.name)
                 return protocol.name;
             }
         }
