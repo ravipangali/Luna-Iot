@@ -32,8 +32,8 @@ class GT06Handler {
         gt06.clearMsgBuffer();
     }
 
-    handleData(data) {
-        var device = new DeviceModel().getDataByImei(data.imei);
+    async handleData(data) {
+        var device = await new DeviceModel().getDataByImei(data.imei);
         console.log('DEVICE FROM DB: ',device)
         console.log('DATA: ',data)
         if (data.event.string === 'status') {
