@@ -1,5 +1,5 @@
 const Gt06 = require('gt06x22')
-const deviceModel = require('../../database/models/DeviceModel')
+const DeviceModel = require('../../database/models/DeviceModel')
 
 
 class GT06Handler {
@@ -25,7 +25,7 @@ class GT06Handler {
                 msg.imei = socket.deviceImei || 'Unknown';
             }
 
-            var device = deviceModel.DeviceModel().getDataByImei(msg.imei);
+            var device = DeviceModel().getDataByImei(msg.imei);
             console.log('DEVICE FROM DB: ',device)
             console.log('DATA: ',msg)
             
