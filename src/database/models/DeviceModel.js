@@ -6,9 +6,9 @@ class DeviceModel {
     async createData(data) {
         try {
             const device = await prisma.getClient().device.upsert({
-                where: { imei: data.imei },
+                where: { imei: data.imei.toString() },
                 update: {
-                    imei: data.imei,
+                    imei: data.imei.toString(),
                     phone: data.phone,
                     sim: data.sim,
                     protocol: data.protocol,
@@ -17,7 +17,7 @@ class DeviceModel {
                     updatedAt: new Date()
                 },
                 create: {
-                    imei: data.imei,
+                    imei: data.imei.toString(),
                     phone: data.phone,
                     sim: data.sim,
                     protocol: data.protocol,
@@ -46,6 +46,7 @@ class DeviceModel {
 
     // Get device by imei
     async getDataByImei(imei) {
+        imei = imei.toString();
         try {
             const device = await prisma.getClient().device.findUnique({where: {imei}});
             return device;
@@ -69,6 +70,7 @@ class DeviceModel {
 
     // Update device
     async updateData(imei, data) {
+        imei = imei.toString();
         try {
             const allowedFields = ['imei', 'phone', 'sim', 'protocol', 'iccid', 'model'];
             const updateData = {};
@@ -95,6 +97,7 @@ class DeviceModel {
 
     // Delete device
     async deleteData(imei) {
+        imei = imei.toString();
         try {
             const result = await prisma.getClient().device.delete({where: {imei}});
             return result;

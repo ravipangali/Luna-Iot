@@ -6,9 +6,9 @@ class VehicleModel {
     async createData(data) {
         try {
             const vehicle = await prisma.getClient().vehicle.upsert({
-                where: { imei: data.imei },
+                where: { imei: data.imei.toString() },
                 update: {
-                    imei: data.imei,
+                    imei: data.imei.toString(),
                     deviceId: data.deviceId,
                     name: data.name,
                     vehicleNo: data.vehicleNo,
@@ -20,7 +20,7 @@ class VehicleModel {
                     updatedAt: new Date()
                 },
                 create: {
-                    imei: data.imei,
+                    imei: data.imei.toString(),
                     deviceId: data.deviceId,
                     name: data.name,
                     vehicleNo: data.vehicleNo,
@@ -52,6 +52,7 @@ class VehicleModel {
 
     // Get vehicle by imei
     async getDataByImei(imei) {
+        imei = imei.toString();
         try {
             const vehicle = await prisma.getClient().vehicle.findUnique({where: {imei}});
             return vehicle;
@@ -75,6 +76,7 @@ class VehicleModel {
 
     // Update vehicle
     async updateData(imei, data) {
+        imei = imei.toString();
         try {
             const allowedFields = ['imei', 'deviceId', 'name', 'vehicleNo', 'vehicleType', 'odometer', 'mileage', 'minimumFuel', 'speedLimit'];
             const updateData = {};
@@ -101,6 +103,7 @@ class VehicleModel {
 
     // Delete vehicle
     async deleteData(imei) {
+        imei = imei.toString();
         try {
             const result = await prisma.getClient().vehicle.delete({where: {imei}});
             return result;

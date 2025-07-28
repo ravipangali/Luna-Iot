@@ -8,7 +8,7 @@ class LocationModel {
             const location = await prisma.getClient().location.create({
                 data: {
                     deviceId: data.deviceId,
-                    imei: data.imei,
+                    imei: data.imei.toString(),
                     latitude: data.latitude,
                     longitude: data.longitude,
                     speed: data.speed,
@@ -27,6 +27,7 @@ class LocationModel {
 
     // Get latest location data
     async getLatest(imei) {
+        imei = imei.toString();
         try {
             const location = await prisma.getClient().location.findFirst({
                 where: {imei},
@@ -60,6 +61,7 @@ class LocationModel {
 
     // Get location by date range
     async getDataByDateRange(imei, startDate, endDate) {
+        imei = imei.toString();
         try {
             return await prisma.getClient().location.findMany({
                 where: {
@@ -81,6 +83,7 @@ class LocationModel {
 
     // Get location by imei
     async getDataByImei(imei) {
+        imei = imei.toString();
         try {
             const location = await prisma.getClient().location.findMany({where: {imei}, orderBy: {createdAt: 'asc'}});
             return location;

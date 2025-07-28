@@ -8,7 +8,7 @@ class StatusModel {
             const status = await prisma.getClient().status.create({
                 data: {
                     deviceId: data.deviceId,
-                    imei: data.imei,
+                    imei: data.imei.toString(),
                     battery: data.battery,
                     signal: data.signal,
                     ignition: data.ignition,
@@ -25,6 +25,7 @@ class StatusModel {
 
     // Get latest status data
     async getLatest(imei) {
+        imei = imei.toString();
         try {
             const status = await prisma.getClient().status.findFirst({
                 where: {imei},
@@ -58,6 +59,7 @@ class StatusModel {
 
     // Get location by date range
     async getDataByDateRange(imei, startDate, endDate) {
+        imei = imei.toString();
         try {
             return await prisma.getClient().status.findMany({
                 where: {
@@ -79,6 +81,7 @@ class StatusModel {
 
     // Get status by imei
     async getDataByImei(imei) {
+        imei = imei.toString();
         try {
             const status = await prisma.getClient().status.findMany({where: {imei}, orderBy: {createdAt: 'asc'}});
             return status;
