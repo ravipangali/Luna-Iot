@@ -64,9 +64,9 @@ model Device {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  locations Location[]
-  statuses  Status[]
-  vehicles  Vehicle[]
+  locations Location[] @relation("DeviceLocations", onDelete: Cascade)
+  statuses  Status[]   @relation("DeviceStatuses", onDelete: Cascade)
+  vehicles  Vehicle[]  @relation("DeviceVehicles", onDelete: Cascade)
 
   @@map("devices")
 }
@@ -74,7 +74,7 @@ model Device {
 model Vehicle {
   id          Int         @id @default(autoincrement())
   imei        String      @unique @db.Char(15)
-  device      Device      @relation(fields: [deviceId], references: [id])
+  device      Device      @relation("DeviceVehicles", fields: [deviceId], references: [id])
   deviceId    Int         @map("device_id")
   name        String      @db.VarChar(255)
   vehicleNo   String      @map("vehicle_no") @db.VarChar(255)
@@ -92,7 +92,7 @@ model Vehicle {
 
 model Location {
   id          Int      @id @default(autoincrement())
-  device      Device   @relation(fields: [deviceId], references: [id])
+  device      Device   @relation("DeviceLocations", fields: [deviceId], references: [id])
   deviceId    Int      @map("device_id")
   imei        String   @db.Char(15)
   latitude    Decimal  @db.Decimal(10, 8)
@@ -111,7 +111,7 @@ model Location {
 
 model Status {
   id        Int      @id @default(autoincrement())
-  device    Device   @relation(fields: [deviceId], references: [id])
+  device    Device   @relation("DeviceStatuses", fields: [deviceId], references: [id])
   deviceId  Int      @map("device_id")
   imei      String   @db.Char(15)
   battery   Int
