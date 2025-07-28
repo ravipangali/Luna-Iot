@@ -27,7 +27,7 @@ class PrismaService {
         }
     }
 
-    async getClient() {
+    getClient() {
         return this.prisma;
     }
 }
