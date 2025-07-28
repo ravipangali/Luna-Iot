@@ -61,6 +61,7 @@ class GT06Handler {
         }
         else {
             console.log('SORRY WE DIDNT HANDLE THAT');
+            console.log(data);
         }
     }
 
