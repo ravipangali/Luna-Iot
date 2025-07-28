@@ -2,8 +2,40 @@ const cluster = require('cluster');
 const os = require('os');
 const tcp = require('./tcp/tcp_listener');
 const prisma = require('./database/prisma');
+const express = require('express');
+const { errorMiddleware } = require('./api/middleware/error_middleware');
+
+// IMPORT Routes
+const deviceRoutes = require('./api/routes/device_routes');
+const locationRoutes = require('./api/routes/location_routes');
+const statusRoutes = require('./api/routes/status_routes');
+const vehicleRoutes = require('./api/routes/vehicle_routes');
+
+// Express App
+const app = express();
+app.use(express.json());
+
+// API Routes
+app.get('/', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
+});
+app.use('/api', deviceRoutes);
+app.use('/api', locationRoutes);
+app.use('/api', statusRoutes);
+app.use('/api', vehicleRoutes);
+
+// Error Middleware
+app.use(errorMiddleware);
+
+// API PORT 
+const API_PORT = process.env.API_PORT || 7070;
 
 
+// Number of CPU for Cluster
 const numCPUs = os.cpus().length;
 
 if (cluster.isMaster) {
@@ -39,6 +71,11 @@ if (cluster.isMaster) {
             console.log('Shutting down gracefully...');
             await prisma.disconnect();
             process.exit(0);
+        });
+
+        // Listen API SERVER
+        app.listen(API_PORT, () => {
+            console.log('API SERVER RUNNING ON PORT: ',API_PORT)
         });
     });
 } else {
