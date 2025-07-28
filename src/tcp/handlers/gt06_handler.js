@@ -47,12 +47,12 @@ class GT06Handler {
             const signal = this.getSignal(data.gsmSigStrength);
             await new StatusModel().createData({
                 deviceId: device.id,
-                imei: data.imei,
+                imei: data.imei.toString(),
                 battery: battery,
                 signal: signal,
-                ignition: data.ignition,
-                charging: data.charging,
-                relay: data.relayState
+                ignition: data.terminalInfo.ignition,
+                charging: data.terminalInfo.charging,
+                relay: data.terminalInfo.relayState
             });
         } else if (data.event.string === 'location') {
             console.log(`IMEI: ${data.imei}  Latitude: ${data.lat}  Longitude: ${data.lon}  Speed: ${data.speed}  SatelliteCount: ${data.satCnt}  Course: ${data.course}  RealTimeGPS: ${data.realTimeGps}`);
