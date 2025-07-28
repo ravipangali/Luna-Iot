@@ -43,24 +43,31 @@ class GT06Handler {
         }
 
         if (data.event.string === 'status') {
-            // var status = new StatusModel();
             const battery = this.getBattery(data.voltageLevel);
             const signal = this.getSignal(data.gsmSigStrength);
-            console.log(`IMEI: ${data.imei}  Battery: ${battery}  Signal: ${signal}  Ignition: ${data.terminalInfo.ignition}  Charging: ${data.terminalInfo.charging}  Relay: ${data.terminalInfo.relayState}`);
-            // status = await status.createData({
-            //     deviceId: device.id,
-            //     imei: data.imei,
-            //     battery: data.battery,
-            //     signal: data.signal,
-            //     ignition: data.ignition,
-            //     charging: data.charging,
-            //     relay: data.relay
-            // });
+            await new StatusModel().createData({
+                deviceId: device.id,
+                imei: data.imei,
+                battery: battery,
+                signal: signal,
+                ignition: data.ignition,
+                charging: data.charging,
+                relay: data.relayState
+            });
         } else if (data.event.string === 'location') {
             console.log(`IMEI: ${data.imei}  Latitude: ${data.lat}  Longitude: ${data.lon}  Speed: ${data.speed}  SatelliteCount: ${data.satCnt}  Course: ${data.course}  RealTimeGPS: ${data.realTimeGps}`);
+            await new LocationModel().createData({
+                deviceId: device.id,
+                imei: data.imei,
+                latitude: data.lat,
+                longitude: data.lon,
+                speed: data.speed,
+                satelliteCount: data.satCnt,
+                course: data.course,
+            });
         } else if (data.event.string === 'login') {
             console.log(`IMEI: ${data.imei}  LOGGED IN`);
-        }
+        } else if (data.event.string === 'alarm') {}
         else {
             console.log('SORRY WE DIDNT HANDLE THAT');
             console.log(data);
