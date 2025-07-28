@@ -64,6 +64,7 @@ class GT06Handler {
                 speed: data.speed,
                 satelliteCount: data.satCnt,
                 course: data.course,
+                realTimeGps: data.realTimeGps,
             });
         } else if (data.event.string === 'login') {
             console.log(`IMEI: ${data.imei}  LOGGED IN`);
