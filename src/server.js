@@ -21,26 +21,27 @@ if (cluster.isMaster) {
         }
     }
 
-    await initializePrisma();
-    
-    // Fork workers (one per CPU core)
-    for (let i = 0; i < numCPUs; i++) {
-        cluster.fork(); // Create a new worker
-    }
+    // Initialize Prisma before forking workers
+    initializePrisma().then(() => {
+        // Fork workers (one per CPU core)
+        for (let i = 0; i < numCPUs; i++) {
+            cluster.fork(); // Create a new worker
+        }
 
-    // Listen for dying workers
-    cluster.on('exit', (worker, code, signal) => {
-        console.log(`Worker ${worker.process.pid} died. Starting a new one...`);
-        cluster.fork(); // Replace dead worker
-    });
+        // Listen for dying workers
+        cluster.on('exit', (worker, code, signal) => {
+            console.log(`Worker ${worker.process.pid} died. Starting a new one...`);
+            cluster.fork(); // Replace dead worker
+        });
 
-    // Graceful shutdown
-    process.on('SIGINT', async () => {
-        console.log('Shutting down gracefully...');
-        await prisma.disconnect();
-        process.exit(0);
+        // Graceful shutdown
+        process.on('SIGINT', async () => {
+            console.log('Shutting down gracefully...');
+            await prisma.disconnect();
+            process.exit(0);
+        });
     });
-}  else {
+} else {
     // This block runs in each worker process
     console.log(`Worker ${process.pid} started...`);
 
