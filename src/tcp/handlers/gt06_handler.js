@@ -1,6 +1,7 @@
 const Gt06 = require('gt06x22')
 const DeviceModel = require('../../database/models/DeviceModel');
 const StatusModel = require('../../database/models/StatusModel');
+const LocationModel = require('../../database/models/LocationModel');
 
 
 class GT06Handler {
@@ -55,7 +56,6 @@ class GT06Handler {
                 relay: data.terminalInfo.relayState
             });
         } else if (data.event.string === 'location') {
-            console.log(`IMEI: ${data.imei}  Latitude: ${data.lat}  Longitude: ${data.lon}  Speed: ${data.speed}  SatelliteCount: ${data.satCnt}  Course: ${data.course}  RealTimeGPS: ${data.realTimeGps}`);
             await new LocationModel().createData({
                 deviceId: device.id,
                 imei: data.imei,
