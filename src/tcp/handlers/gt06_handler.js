@@ -25,10 +25,7 @@ class GT06Handler {
                 msg.imei = socket.deviceImei || 'Unknown';
             }
 
-            var device = DeviceModel().getDataByImei(msg.imei);
-            console.log('DEVICE FROM DB: ',device)
-            console.log('DATA: ',msg)
-            
+            this.handleData(msg)
             
         });
 
@@ -36,6 +33,9 @@ class GT06Handler {
     }
 
     handleData(data) {
+        var device = new DeviceModel().getDataByImei(data.imei);
+        console.log('DEVICE FROM DB: ',device)
+        console.log('DATA: ',data)
         if (msg.event.string === 'status') {
             
         }
