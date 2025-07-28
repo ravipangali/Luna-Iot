@@ -62,7 +62,7 @@ class GT06Handler {
                 latitude: data.lat,
                 longitude: data.lon,
                 speed: data.speed,
-                satelliteCount: data.satCnt,
+                satellite: data.satCnt,
                 course: data.course,
                 realTimeGps: data.realTimeGps,
             });
