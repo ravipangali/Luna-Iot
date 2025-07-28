@@ -33,7 +33,8 @@ class GT06Handler {
     }
 
     async handleData(data) {
-        var device = await new DeviceModel().getDataByImei(data.imei);
+        var device = new DeviceModel();
+        device = await device.getDataByImei(data.imei);
         console.log('DEVICE FROM DB: ',device)
         console.log('DATA: ',data)
         if (data.event.string === 'status') {
