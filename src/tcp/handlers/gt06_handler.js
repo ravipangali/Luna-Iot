@@ -1,5 +1,6 @@
 const Gt06 = require('gt06x22')
-const DeviceModel = require('../../database/models/DeviceModel')
+const DeviceModel = require('../../database/models/DeviceModel');
+const StatusModel = require('../../database/models/StatusModel');
 
 
 class GT06Handler {
@@ -26,7 +27,7 @@ class GT06Handler {
             }
 
             this.handleData(msg)
-            
+
         });
 
         gt06.clearMsgBuffer();
@@ -35,12 +36,27 @@ class GT06Handler {
     async handleData(data) {
         var device = new DeviceModel();
         device = await device.getDataByImei(data.imei);
-        console.log('DEVICE FROM DB: ',device)
-        console.log('DATA: ',data)
-        if (data.event.string === 'status') {
-            
+        
+        if (device === null) {
+            console.warn(`${new Date().toISOString()} => IMEI IS NOT REGISTERED: `,data.imei);
+            return;
         }
-        if (data.event.string === 'location') {}
+
+        if (data.event.string === 'status') {
+            // var status = new StatusModel();
+            console.log(`IMEI: ${data.imei}  Battery: ${data.voltageLevel}  Signal: ${data.gsmSigStrength}  Ignition: ${data.terminalInfo.ignition}  Charging: ${data.terminalInfo.charging}  Relay: ${data.terminalInfo.relay}`);
+            // status = await status.createData({
+            //     deviceId: device.id,
+            //     imei: data.imei,
+            //     battery: data.battery,
+            //     signal: data.signal,
+            //     ignition: data.ignition,
+            //     charging: data.charging,
+            //     relay: data.relay
+            // });
+        } else if (data.event.string === 'location') {
+            console.log(`IMEI: ${data.imei}  Latitude: ${data.lat}  Longitude: ${data.long}  Speed: ${data.speed}  SatelliteCount: ${data.satCnt}  Course: ${data.course}  RealTimeGPS: ${data.realTimeGps}`);
+        }
         else {
             console.log('SORRY WE DIDNT HANDLE THAT');
         }
