@@ -44,7 +44,7 @@ class GT06Handler {
 
         if (data.event.string === 'status') {
             // var status = new StatusModel();
-            console.log(`IMEI: ${data.imei}  Battery: ${data.voltageLevel}  Signal: ${data.gsmSigStrength}  Ignition: ${data.terminalInfo.ignition}  Charging: ${data.terminalInfo.charging}  Relay: ${data.terminalInfo.relay}`);
+            console.log(`IMEI: ${data.imei}  Battery: ${data.voltageLevel}  Signal: ${data.gsmSigStrength}  Ignition: ${data.terminalInfo.ignition}  Charging: ${data.terminalInfo.charging}  Relay: ${data.terminalInfo.relayState}`);
             // status = await status.createData({
             //     deviceId: device.id,
             //     imei: data.imei,
@@ -55,7 +55,9 @@ class GT06Handler {
             //     relay: data.relay
             // });
         } else if (data.event.string === 'location') {
-            console.log(`IMEI: ${data.imei}  Latitude: ${data.lat}  Longitude: ${data.long}  Speed: ${data.speed}  SatelliteCount: ${data.satCnt}  Course: ${data.course}  RealTimeGPS: ${data.realTimeGps}`);
+            console.log(`IMEI: ${data.imei}  Latitude: ${data.lat}  Longitude: ${data.lon}  Speed: ${data.speed}  SatelliteCount: ${data.satCnt}  Course: ${data.course}  RealTimeGPS: ${data.realTimeGps}`);
+        } else if (data.event.string === 'login') {
+            console.log(`IMEI: ${data.imei}  LOGGED IN`);
         }
         else {
             console.log('SORRY WE DIDNT HANDLE THAT');
