@@ -24,7 +24,7 @@ class GT06Handler {
                 msg.imei = socket.deviceImei || 'Unknown';
             }
 
-            handle(msg);
+            console.log(msg);
         });
 
         gt06.clearMsgBuffer();
