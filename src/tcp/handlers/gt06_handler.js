@@ -36,10 +36,10 @@ class GT06Handler {
         var device = new DeviceModel().getDataByImei(data.imei);
         console.log('DEVICE FROM DB: ',device)
         console.log('DATA: ',data)
-        if (msg.event.string === 'status') {
+        if (data.event.string === 'status') {
             
         }
-        if (msg.event.string === 'location') {}
+        if (data.event.string === 'location') {}
         else {
             console.log('SORRY WE DIDNT HANDLE THAT');
         }
