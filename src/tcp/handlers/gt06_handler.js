@@ -56,6 +56,8 @@ class GT06Handler {
             };
             await new StatusModel().createData(statusData);
             socketService._deviceMonitoringMessage('status', data.imei, null, null);
+            data = `${new Date().toISOString()} => STATUS: ${data.imei} => WRITE SUCCESSFULL`;
+            console.log(data);
         } else if (data.event.string === 'location') {
             const locationData = {
                 imei: data.imei,
