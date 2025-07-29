@@ -11,7 +11,7 @@ class TCPListener {
     startServer(port = 7777) {
         this.server = net.createServer((socket) => {
             const connectionId = `${socket.remoteAddress}:${socket.remotePort}`;
-            console.log(`${new Date().toISOString()} => NEW CLIENT CONNECTED`);
+            socketService._deviceMonitoringMessage('connected', null, null, null);
             
             // Store connection info
             this.connections.set(connectionId, {
@@ -31,12 +31,13 @@ class TCPListener {
 
             // Handle connection close
             socket.on('close', () => {
-                console.log(`${new Date().toISOString()} => CLIENT DISCONNECTED`);
+                socketService._deviceMonitoringMessage('disconnected', null, null, null);
                 this.connections.delete(connectionId);
             });
-
+            
             // Handle errors
             socket.on('error', (err) => {
+                socketService._deviceMonitoringMessage('disconnected', null, null, null);
                 console.error(`${new Date().toISOString} => CLIENT ERROR =>`, err.message);
                 this.connections.delete(connectionId);
             });

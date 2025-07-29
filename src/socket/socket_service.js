@@ -36,6 +36,34 @@ class SocketService {
             });
         }
     }
+    
+    _deviceMonitoringMessage(type, imei, lat, lon) {
+        if (this.io) {
+            var data;
+            switch (type) {
+                case 'connected':
+                    data = `${new Date().toISOString()} => INCOMING CLIENT`;
+                    break;
+                case 'disconnected':
+                    data = `${new Date().toISOString()} => CLIENT DISCONNECTED`;
+                    break;
+                case 'location':
+                    data = `${new Date().toISOString()} => LOCATION: ${imei} => Lat: ${lat} | Lon: ${lon}`;
+                    break;
+                case 'login':
+                    data = `${new Date().toISOString()} => LOGIN: ${imei}`;
+                    break;
+                case 'status':
+                    data = `${new Date().toISOString()} => STATUS: ${imei} => WRITE SUCCESSFULL`;
+                    break;
+                case 'imei_not_registered':
+                    data = `${new Date().toISOString()} => IMEI NOT REGISTERED: ${imei}`;
+                    break;
+                default:
+            }
+            this.io.emit('device_monitoring', {message: data});
+        }
+    }
 }
 
 const socketService = new SocketService();

@@ -37,9 +37,9 @@ class GT06Handler {
     async handleData(data, socket) {
         var device = new DeviceModel();
         device = await device.getDataByImei(data.imei);
-        
+
         if (device === null) {
-            console.warn(`${new Date().toISOString()} => IMEI IS NOT REGISTERED: `,data.imei);
+            socketService._deviceMonitoringMessage('imei_not_registered', data.imei, null, null);
             return;
         }
 
@@ -55,6 +55,7 @@ class GT06Handler {
                 relay: data.terminalInfo.relayState
             };
             await new StatusModel().createData(statusData);
+            socketService._deviceMonitoringMessage('status', data.imei, null, null);
         } else if (data.event.string === 'location') {
             const locationData = {
                 imei: data.imei,
@@ -66,8 +67,9 @@ class GT06Handler {
                 realTimeGps: data.realTimeGps,
             };
             await new LocationModel().createData(locationData);
+            socketService._deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
         } else if (data.event.string === 'login') {
-            console.log(`IMEI: ${data.imei}  LOGGED IN`);
+            socketService._deviceMonitoringMessage('login', data.imei, null, null);
         } else if (data.event.string === 'alarm') {
         }
         else {
@@ -93,7 +95,7 @@ class GT06Handler {
                 return 5;
             case 'very high':
                 return 6;
-            default: 
+            default:
                 return 0;
         }
     }
@@ -111,7 +113,7 @@ class GT06Handler {
                 return 3;
             case 'strong signal':
                 return 4;
-            default: 
+            default:
                 return 0;
         }
     }
