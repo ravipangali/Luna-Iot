@@ -37,8 +37,7 @@ class SocketService {
         }
     }
 
-    _deviceMonitoringMessage(type, imei, lat, lon) {
-        console.log('DEVICE MONITORING MSG');
+    deviceMonitoringMessage(type, imei, lat, lon) {
         if (this.io) {
             var data;
             switch (type) {
@@ -63,7 +62,6 @@ class SocketService {
                     break;
                 default:
             }
-            console.log('daa yesto vo: ', data);
             this.io.emit('device_monitoring', { message: data });
         }
     }

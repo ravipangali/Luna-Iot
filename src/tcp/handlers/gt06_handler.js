@@ -39,7 +39,7 @@ class GT06Handler {
         device = await device.getDataByImei(data.imei);
 
         if (device === null) {
-            socketService._deviceMonitoringMessage('imei_not_registered', data.imei, null, null);
+            socketService.deviceMonitoringMessage('imei_not_registered', data.imei, null, null);
             return;
         }
 
@@ -55,9 +55,7 @@ class GT06Handler {
                 relay: data.terminalInfo.relayState
             };
             await new StatusModel().createData(statusData);
-            socketService._deviceMonitoringMessage('status', data.imei, null, null);
-            data = `${new Date().toISOString()} => STATUS: ${data.imei} => WRITE SUCCESSFULL`;
-            console.log(data);
+            socketService.deviceMonitoringMessage('status', data.imei, null, null);
         } else if (data.event.string === 'location') {
             const locationData = {
                 imei: data.imei,
@@ -69,9 +67,9 @@ class GT06Handler {
                 realTimeGps: data.realTimeGps,
             };
             await new LocationModel().createData(locationData);
-            socketService._deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
+            socketService.deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
         } else if (data.event.string === 'login') {
-            socketService._deviceMonitoringMessage('login', data.imei, null, null);
+            socketService.deviceMonitoringMessage('login', data.imei, null, null);
         } else if (data.event.string === 'alarm') {
         }
         else {
