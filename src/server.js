@@ -65,33 +65,36 @@ if (cluster.isMaster) {
 } else {
     // This block runs in each worker process
     console.log(`Worker ${process.pid} started...`);
+    async function startWorker() {
+        try {
+            // Initialize Prisma in each worker
+            await prisma.connect();
+            console.log(`Worker ${process.pid}: Prisma connected`);
 
-    try {
-        // Initialize Prisma in each worker
-        await prisma.connect();
-        console.log(`Worker ${process.pid}: Prisma connected`);
+            // Start HTTP server
+            const server = app.listen(API_PORT, () => {
+                console.log(`Worker ${process.pid}: API server running on port ${API_PORT}`);
+            });
 
-        // Start HTTP server
-        const server = app.listen(API_PORT, () => {
-            console.log(`Worker ${process.pid}: API server running on port ${API_PORT}`);
-        });
+            // Initialize Socket.IO
+            socketService.initialize(server);
 
-        // Initialize Socket.IO
-        socketService.initialize(server);
+            // Start TCP listener (only in first worker)
+            if (cluster.worker.id === 1) {
+                tcp.startServer(TCP_PORT);
+            }
 
-        // Start TCP listener (only in first worker)
-        if (cluster.worker.id === 1) {
-            tcp.startServer();
+            // Graceful shutdown
+            process.on('SIGINT', async () => {
+                await prisma.disconnect();
+                process.exit(0);
+            });
+
+        } catch (error) {
+            console.error(`Worker ${process.pid} initialization failed:`, error);
+            process.exit(1);
         }
-
-        // Graceful shutdown
-        process.on('SIGINT', async () => {
-            await prisma.disconnect();
-            process.exit(0);
-        });
-
-    } catch (error) {
-        console.error(`Worker ${process.pid} initialization failed:`, error);
-        process.exit(1);
     }
+
+    startWorker();
 }
