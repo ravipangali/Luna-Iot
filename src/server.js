@@ -32,8 +32,9 @@ app.use('/api', vehicleRoutes);
 // Error Middleware
 app.use(errorMiddleware);
 
-// API PORT 
+// PORTS 
 const API_PORT = process.env.API_PORT || 7070;
+const TCP_PORT = process.env.TCP_PORT || 7777;
 
 
 // Number of CPU for Cluster
@@ -43,49 +44,54 @@ if (cluster.isMaster) {
     // This block runs in the master process
     console.log(`Master process ${process.pid} is running`);
 
-    // Initialize Prisma in master process
-    async function initializePrisma() {
-        try {
-            await prisma.connect();
-            console.log('Prisma initialization completed in master process');
-        } catch (error) {
-            console.error('Prisma initialization failed:', error);
-            process.exit(1);
-        }
+    // Fork workers (one per CPU core)
+    for (let i = 0; i < numCPUs; i++) {
+        cluster.fork(); // Create a new worker
     }
 
-    // Initialize Prisma before forking workers
-    initializePrisma().then(() => {
-        // Fork workers (one per CPU core)
-        for (let i = 0; i < numCPUs; i++) {
-            cluster.fork(); // Create a new worker
-        }
-
-        // Listen for dying workers
-        cluster.on('exit', (worker, code, signal) => {
-            console.log(`Worker ${worker.process.pid} died. Starting a new one...`);
-            cluster.fork(); // Replace dead worker
-        });
-
-        // Graceful shutdown
-        process.on('SIGINT', async () => {
-            console.log('Shutting down gracefully...');
-            await prisma.disconnect();
-            process.exit(0);
-        });
-
-        // Listen API SERVER
-        app.listen(API_PORT, () => {
-            console.log('API SERVER RUNNING ON PORT: ',API_PORT)
-        });
-
-        // Initialize Socket.IO
-        socketService.initialize(app);
+    // Listen for dying workers
+    cluster.on('exit', (worker, code, signal) => {
+        console.log(`Worker ${worker.process.pid} died. Starting a new one...`);
+        cluster.fork(); // Replace dead worker
     });
+
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+        console.log('Shutting down gracefully...');
+        await prisma.disconnect();
+        process.exit(0);
+    });
+
 } else {
     // This block runs in each worker process
     console.log(`Worker ${process.pid} started...`);
 
-    // Start TCP listener in a worker
-    tcp.startServer();
+    try {
+        // Initialize Prisma in each worker
+        await prisma.connect();
+        console.log(`Worker ${process.pid}: Prisma connected`);
+
+        // Start HTTP server
+        const server = app.listen(API_PORT, () => {
+            console.log(`Worker ${process.pid}: API server running on port ${API_PORT}`);
+        });
+
+        // Initialize Socket.IO
+        socketService.initialize(server);
+
+        // Start TCP listener (only in first worker)
+        if (cluster.worker.id === 1) {
+            tcp.startServer();
+        }
+
+        // Graceful shutdown
+        process.on('SIGINT', async () => {
+            await prisma.disconnect();
+            process.exit(0);
+        });
+
+    } catch (error) {
+        console.error(`Worker ${process.pid} initialization failed:`, error);
+        process.exit(1);
+    }
 }
