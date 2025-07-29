@@ -2,7 +2,7 @@ const Gt06 = require('gt06x22')
 const DeviceModel = require('../../database/models/DeviceModel');
 const StatusModel = require('../../database/models/StatusModel');
 const LocationModel = require('../../database/models/LocationModel');
-
+const socketService = require('../../socket/socket_service');
 
 class GT06Handler {
 
@@ -27,14 +27,14 @@ class GT06Handler {
                 msg.imei = socket.deviceImei || 'Unknown';
             }
 
-            this.handleData(msg)
+            this.handleData(msg, socket);
 
         });
 
         gt06.clearMsgBuffer();
     }
 
-    async handleData(data) {
+    async handleData(data, socket) {
         var device = new DeviceModel();
         device = await device.getDataByImei(data.imei);
         
@@ -46,16 +46,21 @@ class GT06Handler {
         if (data.event.string === 'status') {
             const battery = this.getBattery(data.voltageLevel);
             const signal = this.getSignal(data.gsmSigStrength);
-            await new StatusModel().createData({
+            const statusData = {
                 imei: data.imei.toString(),
                 battery: battery,
                 signal: signal,
                 ignition: data.terminalInfo.ignition,
                 charging: data.terminalInfo.charging,
                 relay: data.terminalInfo.relayState
-            });
+            };
+            await new StatusModel().createData(statusData);
+
+            // Emit Socket.IO event
+            socketService.emitStatusUpdate(data.imei, statusData);
+            socketService.updateDeviceLastSeen(data.imei);
         } else if (data.event.string === 'location') {
-            await new LocationModel().createData({
+            const locationData = {
                 imei: data.imei,
                 latitude: data.lat,
                 longitude: data.lon,
@@ -63,10 +68,16 @@ class GT06Handler {
                 satellite: data.satCnt,
                 course: data.course,
                 realTimeGps: data.realTimeGps,
-            });
+            };
+            await new LocationModel().createData(locationData);
+
+            // Emit Socket.IO event
+            socketService.emitLocationUpdate(data.imei, locationData);
+            socketService.updateDeviceLastSeen(data.imei);
         } else if (data.event.string === 'login') {
             console.log(`IMEI: ${data.imei}  LOGGED IN`);
-        } else if (data.event.string === 'alarm') {}
+        } else if (data.event.string === 'alarm') {
+        }
         else {
             console.log('SORRY WE DIDNT HANDLE THAT');
             console.log(data);

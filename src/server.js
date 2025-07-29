@@ -4,6 +4,7 @@ const tcp = require('./tcp/tcp_listener');
 const prisma = require('./database/prisma');
 const express = require('express');
 const { errorMiddleware } = require('./api/middleware/error_middleware');
+const socketService = require('./socket/socket_service');
 
 // IMPORT Routes
 const deviceRoutes = require('./api/routes/device_routes');
@@ -77,6 +78,9 @@ if (cluster.isMaster) {
         app.listen(API_PORT, () => {
             console.log('API SERVER RUNNING ON PORT: ',API_PORT)
         });
+
+        // Initialize Socket.IO
+        socketService.initialize(app);
     });
 } else {
     // This block runs in each worker process
