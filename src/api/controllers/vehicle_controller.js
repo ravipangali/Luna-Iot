@@ -70,31 +70,33 @@ class VehicleController {
             const { imei } = req.params;
             const updateData = req.body;
 
-            // If imei is being updated, cehck if the new imei exist in device
+            console.log('Original IMEI:', imei);
+            console.log('Update data IMEI:', updateData.imei);
+            
+            // Only check for device existence and vehicle duplicates if IMEI is being changed
             if (updateData.imei && updateData.imei !== imei) {
+                console.log('IMEI is being changed from', imei, 'to', updateData.imei);
+                
+                // Check if device exists
                 const deviceModel = new DeviceModel();
                 const device = await deviceModel.getDataByImei(updateData.imei);
-
+                
                 if (!device) {
                     return errorResponse(res, 'Device with this IMEI does not exist', 400);
                 }
+                
+                // Check if another vehicle with the new IMEI already exists
+                const vehicleModel = new VehicleModel();
+                const existingVehicle = await vehicleModel.getDataByImei(updateData.imei);
+                
+                if (existingVehicle) {
+                    return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
+                }
             }
-
+            
             const vehicleModel = new VehicleModel();
-
-            // console.log('UPDATE IMEI: ', updateData.imei);
-            // console.log('PARAMS IMEI: ', imei);
-            // if (updateData.imei !== imei) {
-            //     const imeiExists = await vehicleModel.getDataByImei(updateData.imei);
-            //     console.log('IMEI EXISTS: ', imeiExists);
-            //     if (imeiExists) {
-            //         console.log('Bhettyo');
-            //         return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
-            //     }
-            // }
-
             const vehicle = await vehicleModel.updateData(imei, updateData);
-
+            
             if (!vehicle) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }

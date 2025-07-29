@@ -79,7 +79,10 @@ class VehicleModel {
 
             return await prisma.getClient().vehicle.update({
                 where: {imei},
-                data: updateData
+                data: updateData, 
+                include: {
+                    device: true
+                }
             });
         } catch (error) {
             console.error('ERROR UPDATE VEHICLES: ',error);
