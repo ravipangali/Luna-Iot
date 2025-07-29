@@ -3,6 +3,7 @@ const { Server } = require('socket.io');
 class SocketService {
     constructor() {
         this.io = null;
+        this.connectedClients = new Set();
     }
 
     initialize(server) {
@@ -10,31 +11,27 @@ class SocketService {
             cors: {
                 origin: '*',
                 methods: ['GET', 'POST']
-            }
+            },
+            transports: ['websocket', 'polling'],
+            allowEIO3: true,
+            pingTimeout: 60000,
+            pingInterval: 25000
         });
 
         this.io.on('connection', (socket) => {
-            console.log('Socket Client Connected')
-            // Handle Message
-            socket.on('send_message', (data) => {
-                console.log('Received message:', data);
-
-                // Broadcast message to all client
-                this.io.emit('receive_message', {
-                    message: data.message,
-                    sender: socket.id,
-                    timestamp: new Date().toISOString()
-                });
-            });
+            console.log('Socket Client Connected: ', socket.id);
+            this.connectedClients.add(socket.id);
         })
     }
 
-    sendMessage(message) {
+    _broadcastToAll(event, data) {
         if (this.io) {
-            this.io.emit('server_message', {
-                message: message,
-                timestamp: new Date().toISOString()
-            });
+            try {
+                this.io.emit(event, data);
+                console.log(`📤 Broadcasted ${event} to ${this.connectedClients.size} clients`);
+            } catch (error) {
+                console.error(`❌ Error broadcasting ${event}:`, error);
+            }
         }
     }
 
@@ -63,8 +60,14 @@ class SocketService {
                     break;
                 default:
             }
-            this.io.emit('device_monitoring', { message: data });
+            this._broadcastToAll('device_monitoring', data);
+        } else {
+            console.log('❌ Socket.IO not initialized');
         }
+    }
+
+    getConnectedClientsCount() {
+        return this.connectedClients.size;
     }
 }
 
