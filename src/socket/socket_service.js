@@ -14,6 +14,7 @@ class SocketService {
         });
 
         this.io.on('connection', (socket) => {
+            console.log('Socket Client Connected')
             // Handle Message
             socket.on('send_message', (data) => {
                 console.log('Received message:', data);
@@ -38,6 +39,7 @@ class SocketService {
     }
 
     deviceMonitoringMessage(type, imei, lat, lon) {
+        console.log('Device monitoring message');
         if (this.io) {
             var data;
             switch (type) {
@@ -54,7 +56,6 @@ class SocketService {
                     data = `${new Date().toISOString()} => LOGIN: ${imei}`;
                     break;
                 case 'status':
-                    console.log('status maa puge')
                     data = `${new Date().toISOString()} => STATUS: ${imei} => WRITE SUCCESSFULL`;
                     break;
                 case 'imei_not_registered':
