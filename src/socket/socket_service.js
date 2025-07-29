@@ -81,17 +81,6 @@ class SocketService {
         }
     }
 
-    // Emit status update
-    emitStatusUpdate(imei, statusData) {
-        if (this.io) {
-            this.io.to('device-monitoring').emit('status_update', {
-                imei,
-                status: statusData,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-
     
     // Get connected devices
     getConnectedDevices() {
