@@ -5,20 +5,8 @@ class VehicleModel {
     // Create new vehicle
     async createData(data) {
         try {
-            const vehicle = await prisma.getClient().vehicle.upsert({
-                where: { imei: data.imei.toString() },
-                update: {
-                    imei: data.imei.toString(),
-                    name: data.name,
-                    vehicleNo: data.vehicleNo,
-                    vehicleType: data.vehicleType,
-                    odometer: data.odometer,
-                    mileage: data.mileage,
-                    minimumFuel: data.minimumFuel,
-                    speedLimit: data.speedLimit,
-                    updatedAt: new Date()
-                },
-                create: {
+            const vehicle = await prisma.getClient().vehicle.create({
+                data: {
                     imei: data.imei.toString(),
                     name: data.name,
                     vehicleNo: data.vehicleNo,
