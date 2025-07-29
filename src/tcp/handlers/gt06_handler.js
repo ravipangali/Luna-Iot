@@ -55,10 +55,6 @@ class GT06Handler {
                 relay: data.terminalInfo.relayState
             };
             await new StatusModel().createData(statusData);
-
-            // Emit Socket.IO event
-            socketService.emitStatusUpdate(data.imei, statusData);
-            socketService.updateDeviceLastSeen(data.imei);
         } else if (data.event.string === 'location') {
             const locationData = {
                 imei: data.imei,
@@ -70,10 +66,6 @@ class GT06Handler {
                 realTimeGps: data.realTimeGps,
             };
             await new LocationModel().createData(locationData);
-
-            // Emit Socket.IO event
-            socketService.emitLocationUpdate(data.imei, locationData);
-            socketService.updateDeviceLastSeen(data.imei);
         } else if (data.event.string === 'login') {
             console.log(`IMEI: ${data.imei}  LOGGED IN`);
         } else if (data.event.string === 'alarm') {

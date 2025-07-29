@@ -32,24 +32,12 @@ class TCPListener {
             // Handle connection close
             socket.on('close', () => {
                 console.log(`${new Date().toISOString()} => CLIENT DISCONNECTED`);
-
-                // Emit Socket.IO event for device disconnection
-                if (socket.deviceImei) {
-                    socketService.emitDeviceDisconnected(socket.deviceImei);
-                }
-
                 this.connections.delete(connectionId);
             });
 
             // Handle errors
             socket.on('error', (err) => {
                 console.error(`${new Date().toISOString} => CLIENT ERROR =>`, err.message);
-                
-                // Emit Socket.IO event for device disconnection
-                if (socket.deviceImei) {
-                    socketService.emitDeviceDisconnected(socket.deviceImei);
-                }
-
                 this.connections.delete(connectionId);
             });
         });
