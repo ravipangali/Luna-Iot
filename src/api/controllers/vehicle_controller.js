@@ -53,6 +53,7 @@ class VehicleController {
             const imeiExists = await vehicleModel.getDataByImei(vehicleData.imei);
 
             if (imeiExists) {
+                console.log('IM from create');
                 return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
             }
 
