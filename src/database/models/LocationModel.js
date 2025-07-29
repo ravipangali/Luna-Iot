@@ -7,7 +7,6 @@ class LocationModel {
         try {
             const location = await prisma.getClient().location.create({
                 data: {
-                    deviceId: data.deviceId,
                     imei: data.imei.toString(),
                     latitude: data.latitude,
                     longitude: data.longitude,

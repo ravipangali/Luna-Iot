@@ -1,5 +1,6 @@
 // src/api/controllers/vehicle_controller.js
 const VehicleModel = require('../../database/models/VehicleModel');
+const DeviceModel = require('../../database/models/DeviceModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 
 class VehicleController {
@@ -39,9 +40,23 @@ class VehicleController {
     static async createVehicle(req, res) {
         try {
             const vehicleData = req.body;
+
+            // Check if device IMEI exists
+            const deviceModel = new DeviceModel();
+            const device = await deviceModel.getDataByImei(vehicleData.imei);
+
+            if (!device) {
+                return errorResponse(res, 'Device with this IMEI does not exist', 400);
+            }
+
             const vehicleModel = new VehicleModel();
+            const imeiExists = await vehicleModel.getDataByImei(vehicleData.imei);
+
+            if (imeiExists) {
+                return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
+            }
+
             const vehicle = await vehicleModel.createData(vehicleData);
-            
             return successResponse(res, vehicle, 'Vehicle created successfully', 201);
         } catch (error) {
             console.error('Error in createVehicle:', error);
@@ -54,7 +69,24 @@ class VehicleController {
         try {
             const { imei } = req.params;
             const updateData = req.body;
+
+            // If imei is being updated, cehck if the new imei exist in device
+            if (updateData.imei && updateData.imei !== imei) {
+                const deviceModel = new DeviceModel();
+                const device = await deviceModel.getDataByImei(updateData.imei);
+
+                if (!device) {
+                    return errorResponse(res, 'Device with this IMEI does not exist', 400);
+                }
+            }
+
             const vehicleModel = new VehicleModel();
+            const imeiExists = await vehicleModel.getDataByImei(updateData.imei);
+
+            if (imeiExists) {
+                return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
+            }
+
             const vehicle = await vehicleModel.updateData(imei, updateData);
             
             if (!vehicle) {

@@ -9,7 +9,6 @@ class VehicleModel {
                 where: { imei: data.imei.toString() },
                 update: {
                     imei: data.imei.toString(),
-                    deviceId: data.deviceId,
                     name: data.name,
                     vehicleNo: data.vehicleNo,
                     vehicleType: data.vehicleType,
@@ -21,7 +20,6 @@ class VehicleModel {
                 },
                 create: {
                     imei: data.imei.toString(),
-                    deviceId: data.deviceId,
                     name: data.name,
                     vehicleNo: data.vehicleNo,
                     vehicleType: data.vehicleType,
@@ -78,7 +76,7 @@ class VehicleModel {
     async updateData(imei, data) {
         imei = imei.toString();
         try {
-            const allowedFields = ['imei', 'deviceId', 'name', 'vehicleNo', 'vehicleType', 'odometer', 'mileage', 'minimumFuel', 'speedLimit'];
+            const allowedFields = ['imei', 'name', 'vehicleNo', 'vehicleType', 'odometer', 'mileage', 'minimumFuel', 'speedLimit'];
             const updateData = {};
 
             for (const [key, value] of Object.entries(data)) {

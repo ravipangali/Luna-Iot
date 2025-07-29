@@ -7,7 +7,6 @@ class StatusModel {
         try {
             const status = await prisma.getClient().status.create({
                 data: {
-                    deviceId: data.deviceId,
                     imei: data.imei.toString(),
                     battery: data.battery,
                     signal: data.signal,

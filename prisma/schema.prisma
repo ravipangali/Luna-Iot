@@ -74,8 +74,7 @@ model Device {
 model Vehicle {
   id          Int         @id @default(autoincrement())
   imei        String      @unique @db.Char(15)
-  device      Device      @relation("DeviceVehicles", fields: [deviceId], references: [id], onDelete: Cascade)
-  deviceId    Int         @map("device_id")
+  device      Device      @relation("DeviceVehicles", fields: [imei], references: [imei], onDelete: Cascade)
   name        String      @db.VarChar(255)
   vehicleNo   String      @map("vehicle_no") @db.VarChar(255)
   vehicleType VehicleType @default(Car) @map("vehicle_type")
@@ -92,8 +91,7 @@ model Vehicle {
 
 model Location {
   id          Int      @id @default(autoincrement())
-  device      Device   @relation("DeviceLocations", fields: [deviceId], references: [id], onDelete: Cascade)
-  deviceId    Int      @map("device_id")
+  device      Device   @relation("DeviceLocations", fields: [imei], references: [imei], onDelete: Cascade)
   imei        String   @db.Char(15)
   latitude    Decimal  @db.Decimal(10, 8)
   longitude   Decimal  @db.Decimal(11, 8)
@@ -103,7 +101,7 @@ model Location {
   satellite   Int
   createdAt   DateTime @default(now()) @map("created_at")
 
-  @@index([deviceId])
+  @@index([imei])
   @@index([createdAt])
   @@index([latitude, longitude])
   @@map("locations")
@@ -111,8 +109,7 @@ model Location {
 
 model Status {
   id        Int      @id @default(autoincrement())
-  device    Device   @relation("DeviceStatuses", fields: [deviceId], references: [id], onDelete: Cascade)
-  deviceId  Int      @map("device_id")
+  device    Device   @relation("DeviceStatuses", fields: [imei], references: [imei], onDelete: Cascade)
   imei      String   @db.Char(15)
   battery   Int
   signal    Int
@@ -121,7 +118,7 @@ model Status {
   relay     Boolean
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@index([deviceId])
+  @@index([imei])
   @@index([createdAt])
   @@map("statuses")
 }

@@ -47,7 +47,6 @@ class GT06Handler {
             const battery = this.getBattery(data.voltageLevel);
             const signal = this.getSignal(data.gsmSigStrength);
             await new StatusModel().createData({
-                deviceId: device.id,
                 imei: data.imei.toString(),
                 battery: battery,
                 signal: signal,
@@ -57,7 +56,6 @@ class GT06Handler {
             });
         } else if (data.event.string === 'location') {
             await new LocationModel().createData({
-                deviceId: device.id,
                 imei: data.imei,
                 latitude: data.lat,
                 longitude: data.lon,
