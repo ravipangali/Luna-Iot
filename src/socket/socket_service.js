@@ -1,7 +1,7 @@
-const {Server} = require('socket.io');
+const { Server } = require('socket.io');
 
 class SocketService {
-    constructor () {
+    constructor() {
         this.io = null;
     }
 
@@ -36,8 +36,9 @@ class SocketService {
             });
         }
     }
-    
+
     _deviceMonitoringMessage(type, imei, lat, lon) {
+        console.log('DEVICE MONITORING MSG');
         if (this.io) {
             var data;
             switch (type) {
@@ -54,6 +55,7 @@ class SocketService {
                     data = `${new Date().toISOString()} => LOGIN: ${imei}`;
                     break;
                 case 'status':
+                    console.log('status maa puge')
                     data = `${new Date().toISOString()} => STATUS: ${imei} => WRITE SUCCESSFULL`;
                     break;
                 case 'imei_not_registered':
@@ -61,7 +63,8 @@ class SocketService {
                     break;
                 default:
             }
-            this.io.emit('device_monitoring', {message: data});
+            console.log('daa yesto vo: ', data);
+            this.io.emit('device_monitoring', { message: data });
         }
     }
 }
