@@ -82,16 +82,16 @@ class VehicleController {
 
             const vehicleModel = new VehicleModel();
 
-            console.log('UPDATE IMEI: ', updateData.imei);
-            console.log('PARAMS IMEI: ', imei);
-            if (updateData.imei !== imei) {
-                const imeiExists = await vehicleModel.getDataByImei(updateData.imei);
-                console.log('IMEI EXISTS: ', imeiExists);
-                if (imeiExists) {
-                    console.log('Bhettyo');
-                    return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
-                }
-            }
+            // console.log('UPDATE IMEI: ', updateData.imei);
+            // console.log('PARAMS IMEI: ', imei);
+            // if (updateData.imei !== imei) {
+            //     const imeiExists = await vehicleModel.getDataByImei(updateData.imei);
+            //     console.log('IMEI EXISTS: ', imeiExists);
+            //     if (imeiExists) {
+            //         console.log('Bhettyo');
+            //         return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
+            //     }
+            // }
 
             const vehicle = await vehicleModel.updateData(imei, updateData);
 
