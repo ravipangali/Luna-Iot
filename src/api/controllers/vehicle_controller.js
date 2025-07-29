@@ -9,7 +9,7 @@ class VehicleController {
         try {
             const vehicleModel = new VehicleModel();
             const vehicles = await vehicleModel.getAllData();
-            
+
             return successResponse(res, vehicles, 'Vehicles retrieved successfully');
         } catch (error) {
             console.error('Error in getAllVehicles:', error);
@@ -24,11 +24,11 @@ class VehicleController {
             const { imei } = req.params;
             const vehicleModel = new VehicleModel();
             const vehicle = await vehicleModel.getDataByImei(imei);
-            
+
             if (!vehicle) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }
-            
+
             return successResponse(res, vehicle, 'Vehicle retrieved successfully');
         } catch (error) {
             console.error('Error in getVehicleByImei:', error);
@@ -81,18 +81,21 @@ class VehicleController {
             }
 
             const vehicleModel = new VehicleModel();
-            const imeiExists = await vehicleModel.getDataByImei(updateData.imei);
 
-            if (imeiExists) {
-                return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
+            if (updateData.imei !== imei) {
+                const imeiExists = await vehicleModel.getDataByImei(updateData.imei);
+
+                if (imeiExists) {
+                    return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
+                }
             }
 
             const vehicle = await vehicleModel.updateData(imei, updateData);
-            
+
             if (!vehicle) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }
-            
+
             return successResponse(res, vehicle, 'Vehicle updated successfully');
         } catch (error) {
             console.error('Error in updateVehicle:', error);
@@ -106,11 +109,11 @@ class VehicleController {
             const { imei } = req.params;
             const vehicleModel = new VehicleModel();
             const result = await vehicleModel.deleteData(imei);
-            
+
             if (!result) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }
-            
+
             return successResponse(res, null, 'Vehicle deleted successfully');
         } catch (error) {
             console.error('Error in deleteVehicle:', error);
