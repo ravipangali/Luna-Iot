@@ -21,12 +21,12 @@ class SocketService {
         this.io.on('connection', (socket) => {
             console.log('Socket Client Connected: ', socket.id);
             this.connectedClients.add(socket.id);
-        })
 
-        this.io.on('disconnect', (socket) => {
-            this.connectedClients.delete(socket.id);
-            console.log('Socket Client Disconnected: ', socket.id);
-        });
+            socket.on('disconnect', () => {
+                this.connectedClients.delete(socket.id);
+                console.log('Socket Client Disconnected: ', socket.id);
+            });
+        })
     }
 
     _broadcastToAll(event, data) {
