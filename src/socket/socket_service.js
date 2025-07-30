@@ -19,8 +19,10 @@ class SocketService {
         });
 
         this.io.on('connection', (socket) => {
-            console.log('Socket Client Connected: ', socket.id);
-            this.connectedClients.add(socket.id);
+            socket.on('connect', () => {
+                this.connectedClients.add(socket.id);
+                console.log('Socket Client Connected: ', socket.id);
+            });
 
             socket.on('disconnect', () => {
                 this.connectedClients.delete(socket.id);
