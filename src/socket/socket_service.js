@@ -20,13 +20,9 @@ class SocketService {
 
         this.io.on('connection', (socket) => {
             this.connectedClients.add(socket.id);
-            console.log(`[Worker ${process.pid}] Socket Client Connected: ${socket.id}`);
-            console.log(`[Worker ${process.pid}] Total connected clients: ${this.connectedClients.size}`);
 
             socket.on('disconnect', () => {
                 this.connectedClients.delete(socket.id);
-                console.log(`[Worker ${process.pid}] Socket Client Disconnected: ${socket.id}`);
-                console.log(`[Worker ${process.pid}] Total connected clients: ${this.connectedClients.size}`);
             });
 
             process.on('message', (message) => {
@@ -42,7 +38,6 @@ class SocketService {
             try {
                 // ALWAYS broadcast - Socket.IO will handle routing to connected clients
                 this.io.emit(event, data);
-                console.log(`[Worker ${process.pid}] 📤 Broadcasted ${event} to all connected clients`);
             } catch (error) {
                 console.error(`[Worker ${process.pid}] ❌ Error broadcasting ${event}:`, error);
             }
@@ -65,7 +60,6 @@ class SocketService {
     }
 
     deviceMonitoringMessage(type, imei, lat, lon) {
-        console.log(`[Worker ${process.pid}] Device monitoring message`);
         if (this.io) {
             var data;
             switch (type) {
