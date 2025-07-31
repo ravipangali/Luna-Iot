@@ -55,6 +55,7 @@ class GT06Handler {
                 relay: data.terminalInfo.relayState
             };
             await new StatusModel().createData(statusData);
+            socketService.statusUpdateMessage(statusData.imei, statusData.battery, statusData.signal, statusData.ignition, statusData.charging, statusData.relay, new Date().toISOString());
             socketService.deviceMonitoringMessage('status', data.imei, null, null);
         } else if (data.event.string === 'location') {
             const locationData = {

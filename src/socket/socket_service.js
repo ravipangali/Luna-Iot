@@ -27,7 +27,7 @@ class SocketService {
 
             process.on('message', (message) => {
                 if (message.type === 'socket_broadcast') {
-                    this._broadcastToAll('device_monitoring', message.data);
+                    this._broadcastToAll(message.event, message.data);
                 }
             });
         });
@@ -54,7 +54,7 @@ class SocketService {
                 fromWorker: process.pid
             });
         }
-        
+
         // Also broadcast to local clients
         this._broadcastToAll(event, data);
     }
@@ -85,6 +85,24 @@ class SocketService {
                     return; // Don't broadcast if type is not recognized
             }
             this._broadcastToAllWorkers('device_monitoring', data);
+        } else {
+            console.log(`[Worker ${process.pid}] ❌ Socket.IO not initialized`);
+        }
+    }
+
+    statusUpdateMessage(imei, battery, signal, ignition, charging, relay, created_at) {
+        if (this.io) {
+            var data;
+            data = {
+                imei: imei,
+                battery: battery,
+                signal: signal,
+                ignition: ignition,
+                charging: charging,
+                relay: relay,
+                created_at: created_at
+            }
+            this._broadcastToAllWorkers('status_update', data);
         } else {
             console.log(`[Worker ${process.pid}] ❌ Socket.IO not initialized`);
         }
