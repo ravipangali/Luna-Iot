@@ -34,14 +34,9 @@ class SocketService {
     _broadcastToAll(event, data) {
         if (this.io) {
             try {
-                // Use Socket.IO's built-in client count instead of our Set
-                const clientCount = this.io.engine.clientsCount;
-                if (clientCount > 0) {
-                    this.io.emit(event, data);
-                    console.log(`[Worker ${process.pid}] 📤 Broadcasted ${event} to ${clientCount} clients`);
-                } else {
-                    console.log(`[Worker ${process.pid}] 📤 No clients connected, skipping broadcast for ${event}`);
-                }
+                // ALWAYS broadcast - Socket.IO will handle routing to connected clients
+                this.io.emit(event, data);
+                console.log(`[Worker ${process.pid}] 📤 Broadcasted ${event} to all connected clients`);
             } catch (error) {
                 console.error(`[Worker ${process.pid}] ❌ Error broadcasting ${event}:`, error);
             }
