@@ -21,21 +21,28 @@ class SocketService {
         this.io.on('connection', (socket) => {
             this.connectedClients.add(socket.id);
             console.log('Socket Client Connected: ', socket.id);
+            console.log('Total connected clients: ', this.connectedClients.size);
 
             socket.on('disconnect', () => {
                 this.connectedClients.delete(socket.id);
                 console.log('Socket Client Disconnected: ', socket.id);
+                console.log('Total connected clients: ', this.connectedClients.size);
             });
-        })
+        });
     }
 
     _broadcastToAll(event, data) {
         if (this.io) {
             try {
-                this.io.emit(event, data);
-                console.log(`📤 Broadcasted ${event} to ${this.connectedClients.size} clients`);
-                for (const client of this.connectedClients) {
-                    console.log(client);
+                // Only broadcast if there are connected clients
+                if (this.connectedClients.size > 0) {
+                    this.io.emit(event, data);
+                    console.log(`📤 Broadcasted ${event} to ${this.connectedClients.size} clients`);
+                    for (const client of this.connectedClients) {
+                        console.log('Connected client:', client);
+                    }
+                } else {
+                    console.log(`📤 No clients connected, skipping broadcast for ${event}`);
                 }
             } catch (error) {
                 console.error(`❌ Error broadcasting ${event}:`, error);
