@@ -17,6 +17,19 @@ class VehicleController {
         }
     }
 
+     // Get all vehicles with latest status and location
+     static async getAllVehiclesWithData(req, res) {
+        try {
+            const vehicleModel = new VehicleModel();
+            const vehicles = await vehicleModel.getAllDataWithStatusAndLocationData();
+
+            return successResponse(res, vehicles, 'Vehicles with data retrieved successfully');
+        } catch (error) {
+            console.error('Error in getAllVehiclesWithData:', error);
+            return errorResponse(res, 'Failed to retrieve vehicles with data', 500);
+        }
+    }
+
 
     // Get vehicle by IMEI
     static async getVehicleByImei(req, res) {
@@ -33,6 +46,24 @@ class VehicleController {
         } catch (error) {
             console.error('Error in getVehicleByImei:', error);
             return errorResponse(res, 'Failed to retrieve vehicle', 500);
+        }
+    }
+
+    // Get vehicle by IMEI with latest status and location
+    static async getVehicleByImeiWithData(req, res) {
+        try {
+            const { imei } = req.params;
+            const vehicleModel = new VehicleModel();
+            const vehicle = await vehicleModel.getDataByImeiWithStatusAndLocationData(imei);
+
+            if (!vehicle) {
+                return errorResponse(res, 'Vehicle not found', 404);
+            }
+
+            return successResponse(res, vehicle, 'Vehicle with data retrieved successfully');
+        } catch (error) {
+            console.error('Error in getVehicleByImeiWithData:', error);
+            return errorResponse(res, 'Failed to retrieve vehicle with data', 500);
         }
     }
 

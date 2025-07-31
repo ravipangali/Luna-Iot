@@ -11,4 +11,8 @@ router.post('/vehicle/create', VehicleController.createVehicle);
 router.put('/vehicle/update/:imei', VehicleController.updateVehicle);
 router.delete('/vehicle/delete/:imei', VehicleController.deleteVehicle);
 
+// Vehicle routes with status and location data
+router.get('/vehicle-with-data', VehicleController.getAllVehiclesWithData);
+router.get('/vehicle-with-data/:imei', VehicleController.getVehicleByImeiWithData);
+
 module.exports = router;

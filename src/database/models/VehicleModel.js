@@ -36,6 +36,40 @@ class VehicleModel {
         }
     }
 
+    // Get all vehicles with latest status and location data
+    async getAllDataWithStatusAndLocationData() {
+        try {
+            const vehicles = await prisma.getClient().vehicle.findMany();
+            
+            // Add latest status and location to each vehicle
+            const vehiclesWithData = await Promise.all(
+                vehicles.map(async (vehicle) => {
+                    const [latestStatus, latestLocation] = await Promise.all([
+                        prisma.getClient().status.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        prisma.getClient().location.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        })
+                    ]);
+
+                    return {
+                        ...vehicle,
+                        latestStatus,
+                        latestLocation
+                    };
+                })
+            );
+
+            return vehiclesWithData;
+        } catch (error) {
+            console.error('ERROR FETCHING ALL VEHICLES WITH DATA: ',error);
+            throw error;
+        }
+    }
+
     // Get vehicle by imei
     async getDataByImei(imei) {
         imei = imei.toString();
@@ -44,6 +78,39 @@ class VehicleModel {
             return vehicle;
         } catch (error) {
             console.error('VEHICLES FETCH ERROR', error);
+            throw error;
+        }
+    }
+
+    // Get vehicle by imei with latest status and location data
+    async getDataByImeiWithStatusAndLocationData(imei) {
+        imei = imei.toString();
+        try {
+            const vehicle = await prisma.getClient().vehicle.findUnique({where: {imei}});
+            
+            if (!vehicle) {
+                return null;
+            }
+
+            // Get latest status and location
+            const [latestStatus, latestLocation] = await Promise.all([
+                prisma.getClient().status.findFirst({
+                    where: { imei },
+                    orderBy: { createdAt: 'desc' }
+                }),
+                prisma.getClient().location.findFirst({
+                    where: { imei },
+                    orderBy: { createdAt: 'desc' }
+                })
+            ]);
+
+            return {
+                ...vehicle,
+                latestStatus,
+                latestLocation
+            };
+        } catch (error) {
+            console.error('VEHICLES FETCH ERROR WITH DATA: ',error);
             throw error;
         }
     }
