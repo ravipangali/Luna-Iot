@@ -1,20 +1,12 @@
 const { Server } = require('socket.io');
-const { createAdapter } = require('@socket.io/redis-adapter');
-const Redis = require('ioredis');
 
 class SocketService {
     constructor() {
         this.io = null;
         this.connectedClients = new Set();
-        this.pubClient = null;
-        this.subClient = null;
     }
 
     initialize(server) {
-        // Create Redis client for cross-worker communication
-        this.pubClient = new Redis();
-        this.subClient = this.pubClient.duplicate();
-
         this.io = new Server(server, {
             cors: {
                 origin: '*',
@@ -23,8 +15,7 @@ class SocketService {
             transports: ['websocket', 'polling'],
             allowEIO3: true,
             pingTimeout: 60000,
-            pingInterval: 25000,
-            adapter: createAdapter(this.pubClient, this.subClient)
+            pingInterval: 25000
         });
 
         this.io.on('connection', (socket) => {
@@ -36,6 +27,12 @@ class SocketService {
                 this.connectedClients.delete(socket.id);
                 console.log(`[Worker ${process.pid}] Socket Client Disconnected: ${socket.id}`);
                 console.log(`[Worker ${process.pid}] Total connected clients: ${this.connectedClients.size}`);
+            });
+
+            process.on('message', (message) => {
+                if (message.type === 'broadcast' && message.event === 'device_monitoring') {
+                    this._broadcastToAll('device_monitoring', message.data);
+                }
             });
         });
     }
@@ -50,6 +47,21 @@ class SocketService {
                 console.error(`[Worker ${process.pid}] ❌ Error broadcasting ${event}:`, error);
             }
         }
+    }
+
+    _broadcastToAllWorkers(event, data) {
+        // Send message to all other workers
+        if (process.send) {
+            process.send({
+                type: 'broadcast',
+                event: event,
+                data: data,
+                fromWorker: process.pid
+            });
+        }
+        
+        // Also broadcast to local clients
+        this._broadcastToAll(event, data);
     }
 
     deviceMonitoringMessage(type, imei, lat, lon) {
@@ -78,7 +90,7 @@ class SocketService {
                 default:
                     return; // Don't broadcast if type is not recognized
             }
-            this._broadcastToAll('device_monitoring', data);
+            this._broadcastToAllWorkers('device_monitoring', data);
         } else {
             console.log(`[Worker ${process.pid}] ❌ Socket.IO not initialized`);
         }

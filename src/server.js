@@ -55,6 +55,18 @@ if (cluster.isMaster) {
         cluster.fork(); // Replace dead worker
     });
 
+    // Handle inter-worker communication
+    cluster.on('message', (worker, message) => {
+        if (message.type === 'broadcast') {
+            // Forward the message to all other workers
+            for (const id in cluster.workers) {
+                if (cluster.workers[id].id !== worker.id) {
+                    cluster.workers[id].send(message);
+                }
+            }
+        }
+    });
+
     // Graceful shutdown
     process.on('SIGINT', async () => {
         console.log('Shutting down gracefully...');
