@@ -57,7 +57,7 @@ if (cluster.isMaster) {
 
     // Handle inter-worker communication
     cluster.on('message', (worker, message) => {
-        if (message.type === 'broadcast') {
+        if (message.type === 'socket_broadcast') {
             // Forward the message to all other workers
             for (const id in cluster.workers) {
                 if (cluster.workers[id].id !== worker.id) {

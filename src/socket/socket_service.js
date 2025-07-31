@@ -26,7 +26,7 @@ class SocketService {
             });
 
             process.on('message', (message) => {
-                if (message.type === 'broadcast' && message.event === 'device_monitoring') {
+                if (message.type === 'socket_broadcast') {
                     this._broadcastToAll('device_monitoring', message.data);
                 }
             });
@@ -48,7 +48,7 @@ class SocketService {
         // Send message to all other workers
         if (process.send) {
             process.send({
-                type: 'broadcast',
+                type: 'socket_broadcast',
                 event: event,
                 data: data,
                 fromWorker: process.pid
