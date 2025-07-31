@@ -34,6 +34,7 @@ class SocketService {
             try {
                 this.io.emit(event, data);
                 console.log(`📤 Broadcasted ${event} to ${this.connectedClients.size} clients`);
+                console.log(`Clients Available: ${this.connectedClients.toString()}`)
             } catch (error) {
                 console.error(`❌ Error broadcasting ${event}:`, error);
             }
