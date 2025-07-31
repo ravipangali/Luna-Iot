@@ -20,13 +20,13 @@ class SocketService {
 
         this.io.on('connection', (socket) => {
             this.connectedClients.add(socket.id);
-            console.log('Socket Client Connected: ', socket.id);
-            console.log('Total connected clients: ', this.connectedClients.size);
+            console.log(`[Worker ${process.pid}] Socket Client Connected: ${socket.id}`);
+            console.log(`[Worker ${process.pid}] Total connected clients: ${this.connectedClients.size}`);
 
             socket.on('disconnect', () => {
                 this.connectedClients.delete(socket.id);
-                console.log('Socket Client Disconnected: ', socket.id);
-                console.log('Total connected clients: ', this.connectedClients.size);
+                console.log(`[Worker ${process.pid}] Socket Client Disconnected: ${socket.id}`);
+                console.log(`[Worker ${process.pid}] Total connected clients: ${this.connectedClients.size}`);
             });
         });
     }
@@ -34,24 +34,22 @@ class SocketService {
     _broadcastToAll(event, data) {
         if (this.io) {
             try {
-                // Only broadcast if there are connected clients
-                if (this.connectedClients.size > 0) {
+                // Use Socket.IO's built-in client count instead of our Set
+                const clientCount = this.io.engine.clientsCount;
+                if (clientCount > 0) {
                     this.io.emit(event, data);
-                    console.log(`📤 Broadcasted ${event} to ${this.connectedClients.size} clients`);
-                    for (const client of this.connectedClients) {
-                        console.log('Connected client:', client);
-                    }
+                    console.log(`[Worker ${process.pid}] 📤 Broadcasted ${event} to ${clientCount} clients`);
                 } else {
-                    console.log(`📤 No clients connected, skipping broadcast for ${event}`);
+                    console.log(`[Worker ${process.pid}] 📤 No clients connected, skipping broadcast for ${event}`);
                 }
             } catch (error) {
-                console.error(`❌ Error broadcasting ${event}:`, error);
+                console.error(`[Worker ${process.pid}] ❌ Error broadcasting ${event}:`, error);
             }
         }
     }
 
     deviceMonitoringMessage(type, imei, lat, lon) {
-        console.log('Device monitoring message');
+        console.log(`[Worker ${process.pid}] Device monitoring message`);
         if (this.io) {
             var data;
             switch (type) {
@@ -74,15 +72,16 @@ class SocketService {
                     data = `${new Date().toISOString()} => IMEI NOT REGISTERED: ${imei}`;
                     break;
                 default:
+                    return; // Don't broadcast if type is not recognized
             }
             this._broadcastToAll('device_monitoring', data);
         } else {
-            console.log('❌ Socket.IO not initialized');
+            console.log(`[Worker ${process.pid}] ❌ Socket.IO not initialized`);
         }
     }
 
     getConnectedClientsCount() {
-        return this.connectedClients.size;
+        return this.io ? this.io.engine.clientsCount : 0;
     }
 }
 
