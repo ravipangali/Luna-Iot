@@ -19,11 +19,13 @@
   },
   "dependencies": {
     "@prisma/client": "^6.12.0",
+    "@socket.io/redis-adapter": "^8.3.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "elasticsearch": "^16.7.3",
     "express": "^5.1.0",
     "gt06x22": "^1.0.10",
+    "ioredis": "^5.7.0",
     "mysql2": "^3.14.2",
     "net": "^1.0.2",
     "prisma": "^6.12.0",

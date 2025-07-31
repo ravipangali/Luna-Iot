@@ -1,12 +1,20 @@
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const Redis = require('ioredis');
 
 class SocketService {
     constructor() {
         this.io = null;
         this.connectedClients = new Set();
+        this.pubClient = null;
+        this.subClient = null;
     }
 
     initialize(server) {
+        // Create Redis client for cross-worker communication
+        this.pubClient = new Redis();
+        this.subClient = this.pubClient.duplicate();
+
         this.io = new Server(server, {
             cors: {
                 origin: '*',
@@ -15,7 +23,8 @@ class SocketService {
             transports: ['websocket', 'polling'],
             allowEIO3: true,
             pingTimeout: 60000,
-            pingInterval: 25000
+            pingInterval: 25000,
+            adapter: createAdapter(this.pubClient, this.subClient)
         });
 
         this.io.on('connection', (socket) => {
