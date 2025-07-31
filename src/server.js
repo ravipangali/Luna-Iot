@@ -80,9 +80,7 @@ if (cluster.isMaster) {
             socketService.initialize(server);
 
             // Start TCP listener (only in first worker)
-            if (cluster.worker.id === 1) {
-                tcp.startServer(TCP_PORT);
-            }
+            tcp.startServer(TCP_PORT);
 
             // Graceful shutdown
             process.on('SIGINT', async () => {
