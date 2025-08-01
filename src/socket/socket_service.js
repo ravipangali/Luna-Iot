@@ -108,6 +108,22 @@ class SocketService {
         }
     }
 
+    locationUpdateMessage(imei, latitude, longitude, speed, course, satellite, realTimeGps, created_at) {
+        if (this.io) {
+            var data = {
+                imei: imei,
+                latitude: latitude,
+                longitude: longitude,
+                speed: speed,
+                course: course,
+                satellite: satellite,
+                realTimeGps: realTimeGps,
+                created_at: created_at,
+            }
+            this._broadcastToAllWorkers('location_update', data);
+        }
+    }
+
     getConnectedClientsCount() {
         return this.io ? this.io.engine.clientsCount : 0;
     }

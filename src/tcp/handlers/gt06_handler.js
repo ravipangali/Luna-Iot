@@ -54,8 +54,8 @@ class GT06Handler {
                 charging: data.terminalInfo.charging,
                 relay: data.terminalInfo.relayState
             };
-            await new StatusModel().createData(statusData);
             socketService.statusUpdateMessage(statusData.imei, statusData.battery, statusData.signal, statusData.ignition, statusData.charging, statusData.relay, new Date().toISOString());
+            await new StatusModel().createData(statusData);
             socketService.deviceMonitoringMessage('status', data.imei, null, null);
         } else if (data.event.string === 'location') {
             const locationData = {
@@ -67,6 +67,7 @@ class GT06Handler {
                 course: data.course,
                 realTimeGps: data.realTimeGps,
             };
+            socketService.locationUpdateMessage(locationData.imei, locationData.latitude, locationData.longitude, locationData.speed, locationData.course, locationData.satellite, locationData.realTimeGps, new Date().toISOString());
             await new LocationModel().createData(locationData);
             socketService.deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
         } else if (data.event.string === 'login') {
