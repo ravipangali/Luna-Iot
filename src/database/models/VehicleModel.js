@@ -1,4 +1,5 @@
 const prisma = require('../prisma')
+const { calculateDistanceFromLocationData } = require('../../utils/distance_service');
 
 class VehicleModel {
 
