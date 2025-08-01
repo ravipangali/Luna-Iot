@@ -59,7 +59,7 @@ class GT06Handler {
             socketService.deviceMonitoringMessage('status', data.imei, null, null);
         } else if (data.event.string === 'location') {
             const locationData = {
-                imei: data.imei,
+                imei: data.imei.toString(),
                 latitude: data.lat,
                 longitude: data.lon,
                 speed: data.speed,
