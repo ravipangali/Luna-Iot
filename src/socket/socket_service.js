@@ -92,6 +92,12 @@ class SocketService {
 
     statusUpdateMessage(imei, battery, signal, ignition, charging, relay, created_at) {
         if (this.io) {
+            // Add validation
+            if (!imei) {
+                console.error('IMEI is required for status update');
+                return;
+            }
+            
             var data;
             data = {
                 imei: imei,
