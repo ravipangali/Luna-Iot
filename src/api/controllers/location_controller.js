@@ -58,6 +58,30 @@ class LocationController {
             return errorResponse(res, 'Failed to retrieve location data', 500);
         }
     }
+
+    // Get combined history by date range (location + status with ignition off)
+    static async getCombinedHistoryByDateRange(req, res) {
+        try {
+            const { imei } = req.params;
+            const { startDate, endDate } = req.query;
+            
+            if (!startDate || !endDate) {
+                return errorResponse(res, 'Start date and end date are required', 400);
+            }
+            
+            const locationModel = new LocationModel();
+            const combinedData = await locationModel.getCombinedHistoryByDateRange(
+                imei, 
+                new Date(startDate), 
+                new Date(endDate)
+            );
+            
+            return successResponse(res, combinedData, 'Combined history data retrieved successfully');
+        } catch (error) {
+            console.error('Error in getCombinedHistoryByDateRange:', error);
+            return errorResponse(res, 'Failed to retrieve combined history data', 500);
+        }
+    }
 }
 
 module.exports = LocationController;

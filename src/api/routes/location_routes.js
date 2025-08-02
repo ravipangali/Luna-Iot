@@ -8,5 +8,6 @@ router.use(corsMiddleware);
 router.get('/location/:imei', LocationController.getLocationByImei);
 router.get('/location/latest/:imei', LocationController.getLatestLocation);
 router.get('/location/range/:imei', LocationController.getLocationByDateRange);
+router.get('/location/combined/:imei', LocationController.getCombinedHistoryByDateRange);
 
 module.exports = router;

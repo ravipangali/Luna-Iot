@@ -92,6 +92,60 @@ class LocationModel {
         }
     }
 
+    // Get combined history data (location + status with ignition off)
+    async getCombinedHistoryByDateRange(imei, startDate, endDate) {
+        imei = imei.toString();
+        try {
+            // Get location data
+            const locations = await prisma.getClient().location.findMany({
+                where: {
+                    imei,
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            });
+
+            // Get status data with ignition off
+            const statuses = await prisma.getClient().status.findMany({
+                where: {
+                    imei,
+                    ignition: false, // Only status records where ignition is off
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            });
+
+            // Combine and sort by createdAt
+            const combinedData = [
+                ...locations.map(loc => ({
+                    ...loc,
+                    type: 'location',
+                    dataType: 'location'
+                })),
+                ...statuses.map(status => ({
+                    ...status,
+                    type: 'status',
+                    dataType: 'status'
+                }))
+            ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+            return combinedData;
+        } catch (error) {
+            console.error('ERROR FETCHING COMBINED HISTORY: ', error);
+            throw error;
+        }
+    }
+
 }
 
 module.exports = LocationModel
