@@ -92,7 +92,7 @@ class LocationModel {
         }
     }
 
-    // Get combined history data (location + status with ignition off)
+    // Get combined history data (location + status with ignition off, only 3 fields for status)
     async getCombinedHistoryByDateRange(imei, startDate, endDate) {
         imei = imei.toString();
         try {
@@ -110,7 +110,7 @@ class LocationModel {
                 }
             });
 
-            // Get status data with ignition off
+            // Get status data with ignition off - only 3 fields
             const statuses = await prisma.getClient().status.findMany({
                 where: {
                     imei,
@@ -119,6 +119,11 @@ class LocationModel {
                         gte: startDate,
                         lte: endDate
                     }
+                },
+                select: {
+                    imei: true,
+                    ignition: true,
+                    createdAt: true
                 },
                 orderBy: {
                     createdAt: 'asc'
