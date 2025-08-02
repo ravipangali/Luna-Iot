@@ -106,7 +106,7 @@ class SocketService {
                 ignition: ignition,
                 charging: charging,
                 relay: relay,
-                created_at: created_at
+                createdAt: created_at
             }
             this._broadcastToAllWorkers('status_update', data);
         } else {
@@ -124,7 +124,7 @@ class SocketService {
                 course: course,
                 satellite: satellite,
                 realTimeGps: realTimeGps,
-                created_at: created_at,
+                createdAt: created_at,
             }
             this._broadcastToAllWorkers('location_update', data);
         }
