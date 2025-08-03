@@ -1,0 +1,18 @@
+const express = require('express');
+const router = express.Router();
+const UserController = require('../controllers/user_controller');
+const AuthMiddleware = require('../middleware/auth_middleware');
+
+// List all users
+router.get('/users', AuthMiddleware.verifyToken, UserController.getAllUsers);
+
+// Get user by ID
+router.get('/users/:phone', AuthMiddleware.verifyToken, UserController.getUserByPhone);
+
+// Update user
+router.put('/users/:phone', AuthMiddleware.verifyToken, UserController.updateUser);
+
+// Delete user
+router.delete('/users/:phone', AuthMiddleware.verifyToken, UserController.deleteUser);
+
+module.exports = router;

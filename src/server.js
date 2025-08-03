@@ -5,8 +5,14 @@ const prisma = require('./database/prisma');
 const express = require('express');
 const { errorMiddleware } = require('./api/middleware/error_middleware');
 const socketService = require('./socket/socket_service');
+const AuthMiddleware = require('./api/middleware/auth_middleware');
+require('dotenv').config();
+
 
 // IMPORT Routes
+const authRoutes = require('./api/routes/auth_routes');
+const roleRoutes = require('./api/routes/role_routes');
+const userRoutes = require('./api/routes/user_routes');
 const deviceRoutes = require('./api/routes/device_routes');
 const locationRoutes = require('./api/routes/location_routes');
 const statusRoutes = require('./api/routes/status_routes');
@@ -16,6 +22,8 @@ const vehicleRoutes = require('./api/routes/vehicle_routes');
 const app = express();
 app.use(express.json());
 
+
+
 // API Routes
 app.get('/', (req, res) => {
     res.json({
@@ -24,12 +32,16 @@ app.get('/', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+app.use('/api/auth', authRoutes);
+app.use('/api', roleRoutes);
+app.use('/api', userRoutes);
 app.use('/api', deviceRoutes);
 app.use('/api', locationRoutes);
 app.use('/api', statusRoutes);
 app.use('/api', vehicleRoutes);
 
-// Error Middleware
+// Middleware
+app.use(AuthMiddleware.verifyToken); 
 app.use(errorMiddleware);
 
 // PORTS 

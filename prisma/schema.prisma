@@ -51,6 +51,119 @@ enum VehicleType {
   Van
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PermissionType {
+  // Device permissions
+  DEVICE_READ
+  DEVICE_CREATE
+  DEVICE_UPDATE
+  DEVICE_DELETE
+
+  // Vehicle permissions
+  VEHICLE_READ
+  VEHICLE_CREATE
+  VEHICLE_UPDATE
+  VEHICLE_DELETE
+
+  // Location permissions
+  LOCATION_READ
+  LOCATION_HISTORY
+
+  // Status permissions
+  STATUS_READ
+  STATUS_HISTORY
+
+  // User management permissions
+  USER_READ
+  USER_CREATE
+  USER_UPDATE
+  USER_DELETE
+
+  // Role management permissions
+  ROLE_READ
+  ROLE_CREATE
+  ROLE_UPDATE
+  ROLE_DELETE
+
+  // System permissions
+  SYSTEM_ADMIN
+  DEVICE_MONITORING
+  LIVE_TRACKING
+}
+
+// User model
+model User {
+  id       Int        @id @default(autoincrement())
+  name     String     @map("first_name") @db.VarChar(100)
+  phone    String     @unique @db.VarChar(100)
+  password String     @db.VarChar(255)
+  token    String?    @unique @db.VarChar(500)  
+  fcmToken String?    @map("fcm_token") @db.VarChar(500)  
+  status   UserStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  role   Role @relation("UserRole", fields: [roleId], references: [id])
+  roleId Int  @map("role_id")
+
+  userDevices  UserDevice[]  @relation("UserDevices")
+  userVehicles UserVehicle[] @relation("UserVehicles")
+
+  @@map("users")
+}
+
+// Role model
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique @db.VarChar(100)
+  description String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users       User[]           @relation("UserRole")
+  permissions RolePermission[] @relation("RolePermissions")
+
+  @@map("roles")
+}
+
+// Permission model
+model Permission {
+  id          Int            @id @default(autoincrement())
+  name        PermissionType @unique
+  description String?        @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  roles RolePermission[] @relation("RolePermissions")
+
+  @@map("permissions")
+}
+
+// Role-Permission junction table
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  role         Role       @relation("RolePermissions", fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       Int        @map("role_id")
+  permission   Permission @relation("RolePermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId Int        @map("permission_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
 model Device {
   id       Int             @id @default(autoincrement())
   imei     String          @unique @db.Char(15)
@@ -67,6 +180,7 @@ model Device {
   locations Location[] @relation("DeviceLocations")
   statuses  Status[]   @relation("DeviceStatuses")
   vehicles  Vehicle[]  @relation("DeviceVehicles")
+  userDevices UserDevice[]  @relation("UserDevices")
 
   @@map("devices")
 }
@@ -85,6 +199,8 @@ model Vehicle {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
+
+  userVehicles UserVehicle[] @relation("UserVehicles")
 
   @@map("vehicles")
 }
@@ -121,4 +237,44 @@ model Status {
   @@index([imei])
   @@index([createdAt])
   @@map("statuses")
+}
+
+
+// User-Device junction table
+model UserDevice {
+  id       Int      @id @default(autoincrement())
+  user     User     @relation("UserDevices", fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int      @map("user_id")
+  device   Device   @relation("UserDevices", fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId Int      @map("device_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([userId, deviceId])
+  @@map("user_devices")
+}
+
+// User-Vehicle junction table
+model UserVehicle {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation("UserVehicles", fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int      @map("user_id")
+  vehicle   Vehicle  @relation("UserVehicles", fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId Int      @map("vehicle_id")
+  
+  // Vehicle-specific permissions
+  allAccess     Boolean @default(false) @map("all_access")
+  liveTracking  Boolean @default(false) @map("live_tracking")
+  history       Boolean @default(false)
+  report        Boolean @default(false)
+  vehicleProfile Boolean @default(false) @map("vehicle_profile")
+  events        Boolean @default(false)
+  geofence      Boolean @default(false)
+  edit          Boolean @default(false)
+  shareTracking Boolean @default(false) @map("share_tracking")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([userId, vehicleId])
+  @@map("user_vehicles")
 }
