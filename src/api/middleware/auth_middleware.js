@@ -36,11 +36,11 @@ class AuthMiddleware {
         });
 
         if (!user || user.token !== token) {
-            return errorResponse(res, 'Invalid token or phone', 401);
+            return errorResponse(res, 'Invalid token or phone', 777);
         }
 
         if (user.status !== 'ACTIVE') {
-            return errorResponse(res, 'User account is not active', 401);
+            return errorResponse(res, 'User account is not active', 777);
         }
 
         req.user = user;
