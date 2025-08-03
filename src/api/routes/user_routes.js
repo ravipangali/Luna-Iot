@@ -9,6 +9,8 @@ router.get('/users', AuthMiddleware.verifyToken, UserController.getAllUsers);
 // Get user by ID
 router.get('/users/:phone', AuthMiddleware.verifyToken, UserController.getUserByPhone);
 
+// Create user (admin)
+router.post('/users', AuthMiddleware.verifyToken, UserController.createUser);
 // Update user
 router.put('/users/:phone', AuthMiddleware.verifyToken, UserController.updateUser);
 

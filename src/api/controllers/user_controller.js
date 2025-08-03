@@ -26,6 +26,32 @@ class UserController {
         }
     }
 
+    static async createUser(req, res) {
+        try {
+            const { name, phone, password, roleId, status } = req.body;
+            if (!name || !phone || !password || !roleId) {
+                return errorResponse(res, 'Missing required fields', 400);
+            }
+            // Check if user already exists
+            const userModel = new UserModel();
+            const existing = await userModel.getUserByPhone(phone);
+            if (existing) {
+                return errorResponse(res, 'User already exists', 400);
+            }
+            const hashedPassword = await bcrypt.hash(password, 12);
+            const user = await userModel.createUser({
+                name,
+                phone,
+                password: hashedPassword,
+                roleId,
+                status: status || 'ACTIVE'
+            });
+            return successResponse(res, user, 'User created successfully', 201);
+        } catch (error) {
+            return errorResponse(res, 'Failed to create user', 500);
+        }
+    }
+
     static async updateUser(req, res) {
         try {
             const { phone } = req.params;
