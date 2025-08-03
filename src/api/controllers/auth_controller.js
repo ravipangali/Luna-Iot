@@ -33,7 +33,7 @@ class AuthController {
 
             // Get default role (assuming role ID 1 is for regular users)
             const defaultRole = await prisma.getClient().role.findFirst({
-                where: { name: 'User' }
+                where: { name: 'Customer' }
             });
 
             if (!defaultRole) {
