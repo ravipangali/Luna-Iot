@@ -25,6 +25,8 @@ app.use(express.json());
 
 
 // API Routes
+app.use(AuthMiddleware.verifyToken); 
+
 app.get('/', (req, res) => {
     res.json({
         success: true,
@@ -41,7 +43,6 @@ app.use('/api', statusRoutes);
 app.use('/api', vehicleRoutes);
 
 // Middleware
-app.use(AuthMiddleware.verifyToken); 
 app.use(errorMiddleware);
 
 // PORTS 
