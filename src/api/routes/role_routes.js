@@ -11,5 +11,6 @@ router.get('/roles/:id', AuthMiddleware.verifyToken, RoleController.getRoleById)
 
 // Update role permissions (edit only permissions)
 router.put('/roles/:id/permissions', AuthMiddleware.verifyToken, RoleController.updateRolePermissions);
+router.get('/permissions', AuthMiddleware.verifyToken, RoleController.getAllPermissions);
 
 module.exports = router;

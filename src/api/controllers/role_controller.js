@@ -1,4 +1,5 @@
 const RoleModel = require('../../database/models/RoleModel');
+const PermissionModel = require('../../database/models/PermissionModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 
 class RoleController {
@@ -9,6 +10,16 @@ class RoleController {
             return successResponse(res, roles, 'Roles retrieved successfully');
         } catch (error) {
             return errorResponse(res, 'Failed to retrieve roles', 500);
+        }
+    }
+
+    static async getAllPermissions(req, res) {
+        try {
+            const permissionModel = new PermissionModel();
+            const permissions = await permissionModel.getAllPermissions();
+            return successResponse(res, permissions, 'Permissions retrieved successfully');
+        } catch (error) {
+            return errorResponse(res, 'Failed to retrieve permissions', 500);
         }
     }
     
