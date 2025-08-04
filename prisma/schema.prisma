@@ -117,6 +117,7 @@ model User {
   userVehicles UserVehicle[] @relation("UserVehicles")
 
   @@map("users")
+  @@index([phone, token, status])
 }
 
 // Role model

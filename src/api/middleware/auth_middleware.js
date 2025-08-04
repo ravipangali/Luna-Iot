@@ -23,15 +23,7 @@ class AuthMiddleware {
         const user = await prisma.getClient().user.findUnique({
             where: { phone },
             include: {
-                role: {
-                    include: {
-                        permissions: {
-                            include: {
-                                permission: true
-                            }
-                        }
-                    }
-                }
+                role
             }
         });
 
