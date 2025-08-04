@@ -139,6 +139,187 @@ class VehicleModel {
         }
     }
 
+    // Get vehicles for Dealer role (direct assignments + vehicles from dealer's devices)
+    async getVehiclesForDealer(dealerId) {
+        try {
+            // Get vehicles that are directly assigned to the dealer
+            const directVehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    userVehicles: {
+                        some: {
+                            userId: dealerId
+                        }
+                    }
+                },
+                include: {
+                    device: true
+                }
+            });
+
+            // Get devices assigned to the dealer
+            const dealerDevices = await prisma.getClient().device.findMany({
+                where: {
+                    userDevices: {
+                        some: {
+                            userId: dealerId
+                        }
+                    }
+                },
+                select: {
+                    imei: true
+                }
+            });
+
+            // Get vehicles that belong to dealer's devices
+            const deviceVehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    imei: {
+                        in: dealerDevices.map(device => device.imei)
+                    }
+                },
+                include: {
+                    device: true
+                }
+            });
+
+            // Combine and remove duplicates
+            const allVehicles = [...directVehicles, ...deviceVehicles];
+            const uniqueVehicles = allVehicles.filter((vehicle, index, self) => 
+                index === self.findIndex(v => v.imei === vehicle.imei)
+            );
+
+            return uniqueVehicles;
+        } catch (error) {
+            console.error('ERROR FETCHING DEALER VEHICLES: ', error);
+            throw error;
+        }
+    }
+
+    // Get vehicles for Dealer role with status and location data
+    async getVehiclesForDealerWithStatusAndLocationData(dealerId) {
+        try {
+            // Get vehicles for dealer
+            const vehicles = await this.getVehiclesForDealer(dealerId);
+            
+            // Add latest status and location to each vehicle
+            const vehiclesWithData = await Promise.all(
+                vehicles.map(async (vehicle) => {
+                    const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
+                        prisma.getClient().status.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        prisma.getClient().location.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        this.getTodayLocationData(vehicle.imei)
+                    ]);
+
+                    // Calculate today's kilometers
+                    const todayKm = calculateDistanceFromLocationData(todayLocationData);
+
+                    return {
+                        ...vehicle,
+                        latestStatus,
+                        latestLocation,
+                        todayKm
+                    };
+                })
+            );
+
+            return vehiclesWithData;
+        } catch (error) {
+            console.error('ERROR FETCHING DEALER VEHICLES WITH DATA: ',error);
+            throw error;
+        }
+    }
+
+    // Get vehicle by IMEI for Dealer (check if vehicle belongs to dealer's devices or direct assignment)
+    async getVehicleByImeiForDealer(imei, dealerId) {
+        imei = imei.toString();
+        try {
+            // Check if vehicle is directly assigned to dealer
+            const directVehicle = await prisma.getClient().vehicle.findFirst({
+                where: {
+                    imei: imei,
+                    userVehicles: {
+                        some: {
+                            userId: dealerId
+                        }
+                    }
+                },
+                include: {
+                    device: true
+                }
+            });
+
+            if (directVehicle) {
+                return directVehicle;
+            }
+
+            // Check if vehicle belongs to a device assigned to dealer
+            const deviceVehicle = await prisma.getClient().vehicle.findFirst({
+                where: {
+                    imei: imei,
+                    device: {
+                        userDevices: {
+                            some: {
+                                userId: dealerId
+                            }
+                        }
+                    }
+                },
+                include: {
+                    device: true
+                }
+            });
+
+            return deviceVehicle;
+        } catch (error) {
+            console.error('VEHICLE FETCH ERROR FOR DEALER: ', error);
+            throw error;
+        }
+    }
+
+    // Get vehicle by IMEI with status and location data for Dealer
+    async getVehicleByImeiWithStatusAndLocationDataForDealer(imei, dealerId) {
+        imei = imei.toString();
+        try {
+            const vehicle = await this.getVehicleByImeiForDealer(imei, dealerId);
+            
+            if (!vehicle) {
+                return null;
+            }
+
+            // Get latest status, location, and today's location data
+            const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
+                prisma.getClient().status.findFirst({
+                    where: { imei },
+                    orderBy: { createdAt: 'desc' }
+                }),
+                prisma.getClient().location.findFirst({
+                    where: { imei },
+                    orderBy: { createdAt: 'desc' }
+                }),
+                this.getTodayLocationData(imei)
+            ]);
+
+            // Calculate today's kilometers
+            const todayKm = calculateDistanceFromLocationData(todayLocationData);
+
+            return {
+                ...vehicle,
+                latestStatus,
+                latestLocation,
+                todayKm
+            };
+        } catch (error) {
+            console.error('VEHICLES FETCH ERROR WITH DATA FOR DEALER: ',error);
+            throw error;
+        }
+    }
+
     // Get all vehicles
     async getAllData() {
         try {

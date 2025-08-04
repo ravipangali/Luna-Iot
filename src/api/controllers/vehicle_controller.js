@@ -9,12 +9,15 @@ class VehicleController {
         try {
             const user = req.user;
             const vehicleModel = new VehicleModel();
-            
-            // Check if user is Super Admin
-            if (user.role.name === 'Super Admin') {
+             // Check if user is Super Admin
+             if (user.role.name === 'Super Admin') {
                 // Super Admin sees all vehicles
                 const vehicles = await vehicleModel.getAllData();
                 return successResponse(res, vehicles, 'Vehicles retrieved successfully');
+            } else if (user.role.name === 'Dealer') {
+                // Dealer sees vehicles from their devices + directly assigned vehicles
+                const vehicles = await vehicleModel.getVehiclesForDealer(user.id);
+                return successResponse(res, vehicles, 'Dealer vehicles retrieved successfully');
             } else {
                 // Regular users see only their assigned vehicles
                 const vehicles = await vehicleModel.getVehiclesByUserId(user.id);
@@ -37,6 +40,10 @@ class VehicleController {
                 // Super Admin sees all vehicles
                 const vehicles = await vehicleModel.getAllDataWithStatusAndLocationData();
                 return successResponse(res, vehicles, 'Vehicles with data retrieved successfully');
+            } else if (user.role.name === 'Dealer') {
+                // Dealer sees vehicles from their devices + directly assigned vehicles
+                const vehicles = await vehicleModel.getVehiclesForDealerWithStatusAndLocationData(user.id);
+                return successResponse(res, vehicles, 'Dealer vehicles with data retrieved successfully');
             } else {
                 // Regular users see only their assigned vehicles
                 const vehicles = await vehicleModel.getVehiclesByUserIdWithStatusAndLocationData(user.id);
@@ -62,6 +69,9 @@ class VehicleController {
             if (user.role.name === 'Super Admin') {
                 // Super Admin can access any vehicle
                 vehicle = await vehicleModel.getDataByImei(imei);
+            } else if (user.role.name === 'Dealer') {
+                // Dealer can access vehicles from their devices or directly assigned
+                vehicle = await vehicleModel.getVehicleByImeiForDealer(imei, user.id);
             } else {
                 // Regular users can only access their assigned vehicles
                 vehicle = await vehicleModel.getVehicleByImeiForUser(imei, user.id);
@@ -91,6 +101,9 @@ class VehicleController {
             if (user.role.name === 'Super Admin') {
                 // Super Admin can access any vehicle
                 vehicle = await vehicleModel.getDataByImeiWithStatusAndLocationData(imei);
+            } else if (user.role.name === 'Dealer') {
+                // Dealer can access vehicles from their devices or directly assigned
+                vehicle = await vehicleModel.getVehicleByImeiWithStatusAndLocationDataForDealer(imei, user.id);
             } else {
                 // Regular users can only access their assigned vehicles
                 vehicle = await vehicleModel.getVehicleByImeiWithStatusAndLocationDataForUser(imei, user.id);
@@ -179,6 +192,13 @@ class VehicleController {
             // Check if user is Super Admin
             if (user.role.name === 'Super Admin') {
                 // Super Admin can update any vehicle
+                vehicle = await vehicleModel.updateData(imei, updateData);
+            } else if (user.role.name === 'Dealer') {
+                // Dealer can update vehicles from their devices or directly assigned
+                const dealerVehicle = await vehicleModel.getVehicleByImeiForDealer(imei, user.id);
+                if (!dealerVehicle) {
+                    return errorResponse(res, 'Vehicle not found or access denied', 404);
+                }
                 vehicle = await vehicleModel.updateData(imei, updateData);
             } else {
                 // Regular users can only update their assigned vehicles
