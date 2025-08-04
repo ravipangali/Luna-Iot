@@ -44,6 +44,25 @@ class DeviceModel {
         }
     }
 
+    // Get devices by user ID (for non-admin users)
+    async getDevicesByUserId(userId) {
+        try {
+            const devices = await prisma.getClient().device.findMany({
+                where: {
+                    userDevices: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                }
+            });
+            return devices;
+        } catch (error) {
+            console.error('ERROR FETCHING USER DEVICES: ', error);
+            throw error;
+        }
+    }
+
     // Get device by imei
     async getDataByImei(imei) {
         imei = imei.toString();
