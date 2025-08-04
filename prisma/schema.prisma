@@ -262,6 +262,8 @@ model UserVehicle {
   userId    Int      @map("user_id")
   vehicle   Vehicle  @relation("UserVehicles", fields: [vehicleId], references: [id], onDelete: Cascade)
   vehicleId Int      @map("vehicle_id")
+  isMain    Boolean  @default(false) @map("is_main")
+  
   
   // Vehicle-specific permissions
   allAccess     Boolean @default(false) @map("all_access")

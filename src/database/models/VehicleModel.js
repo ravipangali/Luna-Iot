@@ -20,12 +20,12 @@ class VehicleModel {
                     updatedAt: new Date()
                 },
             });
-    
+
             // Create user-vehicle relationship if userId is provided
             if (userId) {
                 await this.createUserVehicleRelationship(userId, vehicle.id);
             }
-    
+
             return vehicle;
         } catch (error) {
             console.error('VEHICLES CREATION ERROR', error);
@@ -34,29 +34,39 @@ class VehicleModel {
     }
 
     // Add this new method after createData
-async createUserVehicleRelationship(userId, vehicleId) {
-    try {
-        await prisma.getClient().userVehicle.create({
-            data: {
-                userId: userId,
-                vehicleId: vehicleId,
-                allAccess: true,
-                liveTracking: true,
-                history: true,
-                report: true,
-                vehicleProfile: true,
-                events: true,
-                geofence: true,
-                edit: true,
-                shareTracking: true,
-                createdAt: new Date()
-            }
-        });
-    } catch (error) {
-        console.error('USER VEHICLE RELATIONSHIP CREATION ERROR', error);
-        throw error;
+    async createUserVehicleRelationship(userId, vehicleId) {
+        try {
+            // Check if this is the user's first vehicle
+            const existingUserVehicles = await prisma.getClient().userVehicle.findMany({
+                where: {
+                    userId: userId
+                }
+            });
+
+            const isMain = existingUserVehicles.length === 0; // First vehicle becomes main
+
+            await prisma.getClient().userVehicle.create({
+                data: {
+                    userId: userId,
+                    vehicleId: vehicleId,
+                    isMain: isMain,
+                    allAccess: true,
+                    liveTracking: true,
+                    history: true,
+                    report: true,
+                    vehicleProfile: true,
+                    events: true,
+                    geofence: true,
+                    edit: true,
+                    shareTracking: true,
+                    createdAt: new Date()
+                }
+            });
+        } catch (error) {
+            console.error('USER VEHICLE RELATIONSHIP CREATION ERROR', error);
+            throw error;
+        }
     }
-}
 
     // Get today's location data for a specific IMEI
     async getTodayLocationData(imei) {
@@ -88,7 +98,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
     async getAllDataWithStatusAndLocationData() {
         try {
             const vehicles = await prisma.getClient().vehicle.findMany();
-            
+
             // Add latest status and location to each vehicle
             const vehiclesWithData = await Promise.all(
                 vehicles.map(async (vehicle) => {
@@ -118,7 +128,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
 
             return vehiclesWithData;
         } catch (error) {
-            console.error('ERROR FETCHING ALL VEHICLES WITH DATA: ',error);
+            console.error('ERROR FETCHING ALL VEHICLES WITH DATA: ', error);
             throw error;
         }
     }
@@ -135,7 +145,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
                     }
                 }
             });
-            
+
             // Add latest status and location to each vehicle
             const vehiclesWithData = await Promise.all(
                 vehicles.map(async (vehicle) => {
@@ -165,10 +175,70 @@ async createUserVehicleRelationship(userId, vehicleId) {
 
             return vehiclesWithData;
         } catch (error) {
-            console.error('ERROR FETCHING USER VEHICLES WITH DATA: ',error);
+            console.error('ERROR FETCHING USER VEHICLES WITH DATA: ', error);
             throw error;
         }
     }
+
+
+    // Get vehicles by user ID with ownership type
+    async getVehiclesByUserIdWithOwnershipType(userId) {
+        try {
+            const vehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    userVehicles: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                },
+                include: {
+                    userVehicles: {
+                        where: {
+                            userId: userId
+                        },
+                        select: {
+                            isMain: true,
+                            allAccess: true,
+                            liveTracking: true,
+                            history: true,
+                            report: true,
+                            vehicleProfile: true,
+                            events: true,
+                            geofence: true,
+                            edit: true,
+                            shareTracking: true
+                        }
+                    }
+                }
+            });
+
+            // Add ownership type to each vehicle
+            const vehiclesWithOwnership = vehicles.map(vehicle => {
+                const userVehicle = vehicle.userVehicles[0];
+                let ownershipType = 'Shared';
+
+                if (userVehicle.isMain) {
+                    ownershipType = 'Own';
+                } else if (userVehicle.allAccess && userVehicle.edit) {
+                    ownershipType = 'Customer';
+                }
+                // Otherwise it remains 'Shared'
+
+                return {
+                    ...vehicle,
+                    ownershipType,
+                    userVehicle: userVehicle
+                };
+            });
+
+            return vehiclesWithOwnership;
+        } catch (error) {
+            console.error('ERROR FETCHING VEHICLES WITH OWNERSHIP TYPE: ', error);
+            throw error;
+        }
+    }
+
 
     // Get vehicles for Dealer role (direct assignments + vehicles from dealer's devices)
     async getVehiclesForDealer(dealerId) {
@@ -215,7 +285,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
 
             // Combine and remove duplicates
             const allVehicles = [...directVehicles, ...deviceVehicles];
-            const uniqueVehicles = allVehicles.filter((vehicle, index, self) => 
+            const uniqueVehicles = allVehicles.filter((vehicle, index, self) =>
                 index === self.findIndex(v => v.imei === vehicle.imei)
             );
 
@@ -231,7 +301,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
         try {
             // Get vehicles for dealer
             const vehicles = await this.getVehiclesForDealer(dealerId);
-            
+
             // Add latest status and location to each vehicle
             const vehiclesWithData = await Promise.all(
                 vehicles.map(async (vehicle) => {
@@ -261,7 +331,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
 
             return vehiclesWithData;
         } catch (error) {
-            console.error('ERROR FETCHING DEALER VEHICLES WITH DATA: ',error);
+            console.error('ERROR FETCHING DEALER VEHICLES WITH DATA: ', error);
             throw error;
         }
     }
@@ -318,7 +388,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
         imei = imei.toString();
         try {
             const vehicle = await this.getVehicleByImeiForDealer(imei, dealerId);
-            
+
             if (!vehicle) {
                 return null;
             }
@@ -346,7 +416,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
                 todayKm
             };
         } catch (error) {
-            console.error('VEHICLES FETCH ERROR WITH DATA FOR DEALER: ',error);
+            console.error('VEHICLES FETCH ERROR WITH DATA FOR DEALER: ', error);
             throw error;
         }
     }
@@ -356,7 +426,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
         try {
             return await prisma.getClient().vehicle.findMany();
         } catch (error) {
-            console.error('ERROR FETCHING ALL VEHICLESS: ',error);
+            console.error('ERROR FETCHING ALL VEHICLESS: ', error);
             throw error;
         }
     }
@@ -382,12 +452,12 @@ async createUserVehicleRelationship(userId, vehicleId) {
             throw error;
         }
     }
-    
+
     // Get vehicle by imei
     async getDataByImei(imei) {
         imei = imei.toString();
         try {
-            const vehicle = await prisma.getClient().vehicle.findUnique({where: {imei}});
+            const vehicle = await prisma.getClient().vehicle.findUnique({ where: { imei } });
             return vehicle;
         } catch (error) {
             console.error('VEHICLES FETCH ERROR', error);
@@ -424,8 +494,8 @@ async createUserVehicleRelationship(userId, vehicleId) {
     async getDataByImeiWithStatusAndLocationData(imei) {
         imei = imei.toString();
         try {
-            const vehicle = await prisma.getClient().vehicle.findUnique({where: {imei}});
-            
+            const vehicle = await prisma.getClient().vehicle.findUnique({ where: { imei } });
+
             if (!vehicle) {
                 return null;
             }
@@ -453,11 +523,11 @@ async createUserVehicleRelationship(userId, vehicleId) {
                 todayKm
             };
         } catch (error) {
-            console.error('VEHICLES FETCH ERROR WITH DATA: ',error);
+            console.error('VEHICLES FETCH ERROR WITH DATA: ', error);
             throw error;
         }
     }
-    
+
     // Get vehicle by imei with latest status and location data for specific user
     async getVehicleByImeiWithStatusAndLocationDataForUser(imei, userId) {
         imei = imei.toString();
@@ -472,7 +542,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
                     }
                 }
             });
-            
+
             if (!vehicle) {
                 return null;
             }
@@ -500,7 +570,7 @@ async createUserVehicleRelationship(userId, vehicleId) {
                 todayKm
             };
         } catch (error) {
-            console.error('VEHICLES FETCH ERROR WITH DATA FOR USER: ',error);
+            console.error('VEHICLES FETCH ERROR WITH DATA FOR USER: ', error);
             throw error;
         }
     }
@@ -523,11 +593,11 @@ async createUserVehicleRelationship(userId, vehicleId) {
             }
 
             return await prisma.getClient().vehicle.update({
-                where: {imei},
-                data: updateData, 
+                where: { imei },
+                data: updateData,
             });
         } catch (error) {
-            console.error('ERROR UPDATE VEHICLES: ',error);
+            console.error('ERROR UPDATE VEHICLES: ', error);
             throw error;
         }
     }
@@ -536,10 +606,10 @@ async createUserVehicleRelationship(userId, vehicleId) {
     async deleteData(imei) {
         imei = imei.toString();
         try {
-            const result = await prisma.getClient().vehicle.delete({where: {imei}});
+            const result = await prisma.getClient().vehicle.delete({ where: { imei } });
             return result;
         } catch (error) {
-            console.error('ERROR DELETE VEHICLE: ',error);
+            console.error('ERROR DELETE VEHICLE: ', error);
             throw error;
         }
     }

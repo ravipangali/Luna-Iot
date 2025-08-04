@@ -7,6 +7,7 @@ router.use(corsMiddleware);
 
 router.get('/vehicle', VehicleController.getAllVehicles);
 router.get('/vehicle/:imei', VehicleController.getVehicleByImei);
+router.get('/vehicles/ownership', VehicleController.getVehiclesWithOwnershipType);
 router.post('/vehicle/create', VehicleController.createVehicle);
 router.put('/vehicle/update/:imei', VehicleController.updateVehicle);
 router.delete('/vehicle/delete/:imei', VehicleController.deleteVehicle);
