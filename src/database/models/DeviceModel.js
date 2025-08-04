@@ -66,6 +66,27 @@ class DeviceModel {
             throw error;
         }
     }
+
+     // Get device by imei for specific user (check access)
+     async getDeviceByImeiForUser(imei, userId) {
+        imei = imei.toString();
+        try {
+            const device = await prisma.getClient().device.findFirst({
+                where: {
+                    imei: imei,
+                    userDevices: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                }
+            });
+            return device;
+        } catch (error) {
+            console.error('DEVICE FETCH ERROR FOR USER: ', error);
+            throw error;
+        }
+    }
     
 
     // Update device

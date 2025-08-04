@@ -92,12 +92,81 @@ class VehicleModel {
         }
     }
 
+    // Get vehicles by user ID with latest status and location data
+    async getVehiclesByUserIdWithStatusAndLocationData(userId) {
+        try {
+            const vehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    userVehicles: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                }
+            });
+            
+            // Add latest status and location to each vehicle
+            const vehiclesWithData = await Promise.all(
+                vehicles.map(async (vehicle) => {
+                    const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
+                        prisma.getClient().status.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        prisma.getClient().location.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        this.getTodayLocationData(vehicle.imei)
+                    ]);
+
+                    // Calculate today's kilometers
+                    const todayKm = calculateDistanceFromLocationData(todayLocationData);
+
+                    return {
+                        ...vehicle,
+                        latestStatus,
+                        latestLocation,
+                        todayKm
+                    };
+                })
+            );
+
+            return vehiclesWithData;
+        } catch (error) {
+            console.error('ERROR FETCHING USER VEHICLES WITH DATA: ',error);
+            throw error;
+        }
+    }
+
     // Get all vehicles
     async getAllData() {
         try {
             return await prisma.getClient().vehicle.findMany();
         } catch (error) {
             console.error('ERROR FETCHING ALL VEHICLESS: ',error);
+            throw error;
+        }
+    }
+
+    // Get vehicles by user ID (for non-admin users)
+    async getVehiclesByUserId(userId) {
+        try {
+            const vehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    userVehicles: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                },
+                include: {
+                    device: true
+                }
+            });
+            return vehicles;
+        } catch (error) {
+            console.error('ERROR FETCHING USER VEHICLES: ', error);
             throw error;
         }
     }
@@ -113,6 +182,31 @@ class VehicleModel {
             throw error;
         }
     }
+
+    // Get vehicle by imei for specific user (check access)
+    async getVehicleByImeiForUser(imei, userId) {
+        imei = imei.toString();
+        try {
+            const vehicle = await prisma.getClient().vehicle.findFirst({
+                where: {
+                    imei: imei,
+                    userVehicles: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                },
+                include: {
+                    device: true
+                }
+            });
+            return vehicle;
+        } catch (error) {
+            console.error('VEHICLE FETCH ERROR FOR USER: ', error);
+            throw error;
+        }
+    }
+
 
     // Get vehicle by imei with latest status and location data
     async getDataByImeiWithStatusAndLocationData(imei) {
@@ -152,6 +246,52 @@ class VehicleModel {
         }
     }
     
+    // Get vehicle by imei with latest status and location data for specific user
+    async getVehicleByImeiWithStatusAndLocationDataForUser(imei, userId) {
+        imei = imei.toString();
+        try {
+            const vehicle = await prisma.getClient().vehicle.findFirst({
+                where: {
+                    imei: imei,
+                    userVehicles: {
+                        some: {
+                            userId: userId
+                        }
+                    }
+                }
+            });
+            
+            if (!vehicle) {
+                return null;
+            }
+
+            // Get latest status, location, and today's location data
+            const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
+                prisma.getClient().status.findFirst({
+                    where: { imei },
+                    orderBy: { createdAt: 'desc' }
+                }),
+                prisma.getClient().location.findFirst({
+                    where: { imei },
+                    orderBy: { createdAt: 'desc' }
+                }),
+                this.getTodayLocationData(imei)
+            ]);
+
+            // Calculate today's kilometers
+            const todayKm = calculateDistanceFromLocationData(todayLocationData);
+
+            return {
+                ...vehicle,
+                latestStatus,
+                latestLocation,
+                todayKm
+            };
+        } catch (error) {
+            console.error('VEHICLES FETCH ERROR WITH DATA FOR USER: ',error);
+            throw error;
+        }
+    }
 
     // Update vehicle
     async updateData(imei, data) {

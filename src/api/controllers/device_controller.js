@@ -5,9 +5,19 @@ class DeviceController {
     // Get all devices
     static async getAllDevices(req, res) {
         try {
+            const user = req.user;
             const deviceModel = new DeviceModel();
-            const devices = await deviceModel.getAllData();
-            return successResponse(res, devices, 'Devices retrieved successfully');
+            
+            // Check if user is Super Admin
+            if (user.role.name === 'Super Admin') {
+                // Super Admin sees all devices
+                const devices = await deviceModel.getAllData();
+                return successResponse(res, devices, 'Devices retrieved successfully');
+            } else {
+                // Regular users see only their assigned devices
+                const devices = await deviceModel.getDevicesByUserId(user.id);
+                return successResponse(res, devices, 'User devices retrieved successfully');
+            }
         }
         catch (error) {
             console.error('Error in get all device: ', error);
@@ -20,11 +30,22 @@ class DeviceController {
     static async getDeviceByImei(req, res) {
         try {
             const { imei } = req.params;
+            const user = req.user;
             const deviceModel = new DeviceModel();
-            const device = await deviceModel.getDataByImei(imei);
+            
+            let device;
+            
+            // Check if user is Super Admin
+            if (user.role.name === 'Super Admin') {
+                // Super Admin can access any device
+                device = await deviceModel.getDataByImei(imei);
+            } else {
+                // Regular users can only access their assigned devices
+                device = await deviceModel.getDeviceByImeiForUser(imei, user.id);
+            }
             
             if (!device) {
-                return errorResponse(res, 'Device not found', 404);
+                return errorResponse(res, 'Device not found or access denied', 404);
             }
             
             return successResponse(res, device, 'Device retrieved successfully');
@@ -36,7 +57,13 @@ class DeviceController {
 
     // Create new device
     static async createDevice(req, res) {
-        try {
+        try {const user = req.user;
+            
+            // Only Super Admin can create devices
+            if (user.role.name !== 'Super Admin') {
+                return errorResponse(res, 'Access denied. Only Super Admin can create devices', 403);
+            }
+            
             const deviceData = req.body;
             const deviceModel = new DeviceModel();
             const device = await deviceModel.createData(deviceData);
@@ -52,9 +79,24 @@ class DeviceController {
     static async updateDevice(req, res) {
         try {
             const { imei } = req.params;
+            const user = req.user;
             const updateData = req.body;
             const deviceModel = new DeviceModel();
-            const device = await deviceModel.updateData(imei, updateData);
+            
+            let device;
+            
+            // Check if user is Super Admin
+            if (user.role.name === 'Super Admin') {
+                // Super Admin can update any device
+                device = await deviceModel.updateData(imei, updateData);
+            } else {
+                // Regular users can only update their assigned devices
+                const userDevice = await deviceModel.getDeviceByImeiForUser(imei, user.id);
+                if (!userDevice) {
+                    return errorResponse(res, 'Device not found or access denied', 404);
+                }
+                device = await deviceModel.updateData(imei, updateData);
+            }
             
             if (!device) {
                 return errorResponse(res, 'Device not found', 404);
@@ -70,6 +112,13 @@ class DeviceController {
     // Delete device
     static async deleteDevice(req, res) {
         try {
+            const user = req.user;
+            
+            // Only Super Admin can delete devices
+            if (user.role.name !== 'Super Admin') {
+                return errorResponse(res, 'Access denied. Only Super Admin can delete devices', 403);
+            }
+            
             const { imei } = req.params;
             const deviceModel = new DeviceModel();
             const result = await deviceModel.deleteData(imei);
