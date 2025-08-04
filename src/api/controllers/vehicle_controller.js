@@ -59,34 +59,32 @@ class VehicleController {
     }
 
     // Get vehicles with ownership type
-static async getVehiclesWithOwnershipType(req, res) {
-    try {
-        const user = req.user;
-        const vehicleModel = new VehicleModel();
-        
-        let vehicles;
-        
-        // Super Admin: all vehicles with ownership info
-        if (user.role.name === 'Super Admin') {
-            // For super admin, we might want to show all vehicles with ownership info
-            // This would need a different method in the model
-            vehicles = await vehicleModel.getAllData();
-        } 
-        // Dealer: vehicles from assigned devices + directly assigned vehicles
-        else if (user.role.name === 'Dealer') {
-            vehicles = await vehicleModel.getVehiclesForDealer(user.id);
-        } 
-        // Customer: only directly assigned vehicles with ownership type
-        else {
-            vehicles = await vehicleModel.getVehiclesByUserIdWithOwnershipType(user.id);
+    static async getVehiclesWithOwnershipType(req, res) {
+        try {
+            const user = req.user;
+            const vehicleModel = new VehicleModel();
+            
+            let vehicles;
+            
+            // Super Admin: all vehicles with ownership info
+            if (user.role.name === 'Super Admin') {
+                vehicles = await vehicleModel.getAllVehiclesWithOwnershipType(user.id);
+            } 
+            // Dealer: vehicles from assigned devices + directly assigned vehicles
+            else if (user.role.name === 'Dealer') {
+                vehicles = await vehicleModel.getVehiclesForDealerWithOwnershipType(user.id);
+            } 
+            // Customer: only directly assigned vehicles with ownership type
+            else {
+                vehicles = await vehicleModel.getVehiclesByUserIdWithOwnershipType(user.id);
+            }
+            
+            return successResponse(res, vehicles, 'Vehicles with ownership type retrieved successfully');
+        } catch (error) {
+            console.error('Error in getVehiclesWithOwnershipType:', error);
+            return errorResponse(res, 'Failed to retrieve vehicles with ownership type', 500);
         }
-        
-        return successResponse(res, vehicles, 'Vehicles with ownership type retrieved successfully');
-    } catch (error) {
-        console.error('Error in getVehiclesWithOwnershipType:', error);
-        return errorResponse(res, 'Failed to retrieve vehicles with ownership type', 500);
     }
-}
 
     // Get vehicle by IMEI
     static async getVehicleByImei(req, res) {
@@ -159,22 +157,22 @@ static async getVehiclesWithOwnershipType(req, res) {
         try {
             const user = req.user;
             const vehicleData = req.body;
-    
+
             // Check if device IMEI exists
             const deviceModel = new DeviceModel();
             const device = await deviceModel.getDataByImei(vehicleData.imei);
-    
+
             if (!device) {
                 return errorResponse(res, 'Device with this IMEI does not exist', 400);
             }
-    
+
             const vehicleModel = new VehicleModel();
             const existingVehicle = await vehicleModel.getDataByImei(vehicleData.imei);
-    
+
             if (existingVehicle) {
                 return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
             }
-    
+
             // Create vehicle with user-vehicle relationship
             const vehicle = await vehicleModel.createData(vehicleData, user.id);
             return successResponse(res, vehicle, 'Vehicle created successfully', 201);

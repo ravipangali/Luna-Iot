@@ -33,7 +33,7 @@ class VehicleModel {
         }
     }
 
-    // Add this new method after createData
+    // Create user-vehicle relationship with ownership logic
     async createUserVehicleRelationship(userId, vehicleId) {
         try {
             // Check if this is the user's first vehicle
@@ -180,10 +180,174 @@ class VehicleModel {
         }
     }
 
+    // Get all vehicles with ownership type for Super Admin
+    async getAllVehiclesWithOwnershipType(userId) {
+        try {
+            const vehicles = await prisma.getClient().vehicle.findMany({
+                include: {
+                    userVehicles: {
+                        where: {
+                            userId: userId
+                        },
+                        select: {
+                            isMain: true,
+                            allAccess: true,
+                            liveTracking: true,
+                            history: true,
+                            report: true,
+                            vehicleProfile: true,
+                            events: true,
+                            geofence: true,
+                            edit: true,
+                            shareTracking: true
+                        }
+                    }
+                }
+            });
 
-    // Get vehicles by user ID with ownership type
+            // Add ownership type to each vehicle
+            const vehiclesWithOwnership = vehicles.map(vehicle => {
+                const userVehicle = vehicle.userVehicles[0]; // Will be undefined if no relationship
+
+                let ownershipType = 'Customer'; // Default: user doesn't exist in user_vehicles
+
+                if (userVehicle) {
+                    if (userVehicle.isMain) {
+                        ownershipType = 'Own';
+                    } else {
+                        ownershipType = 'Shared';
+                    }
+                }
+
+                return {
+                    ...vehicle,
+                    ownershipType,
+                    userVehicle: userVehicle || null
+                };
+            });
+
+            return vehiclesWithOwnership;
+        } catch (error) {
+            console.error('ERROR FETCHING ALL VEHICLES WITH OWNERSHIP TYPE: ', error);
+            throw error;
+        }
+    }
+
+    // Get vehicles for Dealer with ownership type
+    async getVehiclesForDealerWithOwnershipType(dealerId) {
+        try {
+            // Get vehicles that are directly assigned to the dealer
+            const directVehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    userVehicles: {
+                        some: {
+                            userId: dealerId
+                        }
+                    }
+                },
+                include: {
+                    device: true,
+                    userVehicles: {
+                        where: {
+                            userId: dealerId
+                        },
+                        select: {
+                            isMain: true,
+                            allAccess: true,
+                            liveTracking: true,
+                            history: true,
+                            report: true,
+                            vehicleProfile: true,
+                            events: true,
+                            geofence: true,
+                            edit: true,
+                            shareTracking: true
+                        }
+                    }
+                }
+            });
+
+            // Get devices assigned to the dealer
+            const dealerDevices = await prisma.getClient().device.findMany({
+                where: {
+                    userDevices: {
+                        some: {
+                            userId: dealerId
+                        }
+                    }
+                },
+                select: {
+                    imei: true
+                }
+            });
+
+            // Get vehicles that belong to dealer's devices
+            const deviceVehicles = await prisma.getClient().vehicle.findMany({
+                where: {
+                    imei: {
+                        in: dealerDevices.map(device => device.imei)
+                    }
+                },
+                include: {
+                    device: true,
+                    userVehicles: {
+                        where: {
+                            userId: dealerId
+                        },
+                        select: {
+                            isMain: true,
+                            allAccess: true,
+                            liveTracking: true,
+                            history: true,
+                            report: true,
+                            vehicleProfile: true,
+                            events: true,
+                            geofence: true,
+                            edit: true,
+                            shareTracking: true
+                        }
+                    }
+                }
+            });
+
+            // Combine and remove duplicates
+            const allVehicles = [...directVehicles, ...deviceVehicles];
+            const uniqueVehicles = allVehicles.filter((vehicle, index, self) =>
+                index === self.findIndex(v => v.imei === vehicle.imei)
+            );
+
+            // Add ownership type to each vehicle
+            const vehiclesWithOwnership = uniqueVehicles.map(vehicle => {
+                const userVehicle = vehicle.userVehicles[0]; // Will be undefined if no relationship
+
+                let ownershipType = 'Customer'; // Default: user doesn't exist in user_vehicles
+
+                if (userVehicle) {
+                    if (userVehicle.isMain) {
+                        ownershipType = 'Own';
+                    } else {
+                        ownershipType = 'Shared';
+                    }
+                }
+
+                return {
+                    ...vehicle,
+                    ownershipType,
+                    userVehicle: userVehicle || null
+                };
+            });
+
+            return vehiclesWithOwnership;
+        } catch (error) {
+            console.error('ERROR FETCHING DEALER VEHICLES WITH OWNERSHIP TYPE: ', error);
+            throw error;
+        }
+    }
+
+    // Get vehicles by user ID with ownership type (for customers)
     async getVehiclesByUserIdWithOwnershipType(userId) {
         try {
+            // Get all vehicles that the user has access to
             const vehicles = await prisma.getClient().vehicle.findMany({
                 where: {
                     userVehicles: {
@@ -215,20 +379,22 @@ class VehicleModel {
 
             // Add ownership type to each vehicle
             const vehiclesWithOwnership = vehicles.map(vehicle => {
-                const userVehicle = vehicle.userVehicles[0];
-                let ownershipType = 'Shared';
+                const userVehicle = vehicle.userVehicles[0]; // Will be undefined if no relationship
 
-                if (userVehicle.isMain) {
-                    ownershipType = 'Own';
-                } else if (userVehicle.allAccess && userVehicle.edit) {
-                    ownershipType = 'Customer';
+                let ownershipType = 'Customer'; // Default: user doesn't exist in user_vehicles
+
+                if (userVehicle) {
+                    if (userVehicle.isMain) {
+                        ownershipType = 'Own';
+                    } else {
+                        ownershipType = 'Shared';
+                    }
                 }
-                // Otherwise it remains 'Shared'
 
                 return {
                     ...vehicle,
                     ownershipType,
-                    userVehicle: userVehicle
+                    userVehicle: userVehicle || null
                 };
             });
 
@@ -238,7 +404,6 @@ class VehicleModel {
             throw error;
         }
     }
-
 
     // Get vehicles for Dealer role (direct assignments + vehicles from dealer's devices)
     async getVehiclesForDealer(dealerId) {
@@ -426,7 +591,7 @@ class VehicleModel {
         try {
             return await prisma.getClient().vehicle.findMany();
         } catch (error) {
-            console.error('ERROR FETCHING ALL VEHICLESS: ', error);
+            console.error('ERROR FETCHING ALL VEHICLES: ', error);
             throw error;
         }
     }
@@ -488,7 +653,6 @@ class VehicleModel {
             throw error;
         }
     }
-
 
     // Get vehicle by imei with latest status and location data
     async getDataByImeiWithStatusAndLocationData(imei) {
