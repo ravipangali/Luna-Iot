@@ -4,7 +4,7 @@ const { calculateDistanceFromLocationData } = require('../../utils/distance_serv
 class VehicleModel {
 
     // Create new vehicle
-    async createData(data) {
+    async createData(data, userId = null) {
         try {
             const vehicle = await prisma.getClient().vehicle.create({
                 data: {
@@ -20,12 +20,43 @@ class VehicleModel {
                     updatedAt: new Date()
                 },
             });
+    
+            // Create user-vehicle relationship if userId is provided
+            if (userId) {
+                await this.createUserVehicleRelationship(userId, vehicle.id);
+            }
+    
             return vehicle;
         } catch (error) {
             console.error('VEHICLES CREATION ERROR', error);
             throw error;
         }
     }
+
+    // Add this new method after createData
+async createUserVehicleRelationship(userId, vehicleId) {
+    try {
+        await prisma.getClient().userVehicle.create({
+            data: {
+                userId: userId,
+                vehicleId: vehicleId,
+                allAccess: true,
+                liveTracking: true,
+                history: true,
+                report: true,
+                vehicleProfile: true,
+                events: true,
+                geofence: true,
+                edit: true,
+                shareTracking: true,
+                createdAt: new Date()
+            }
+        });
+    } catch (error) {
+        console.error('USER VEHICLE RELATIONSHIP CREATION ERROR', error);
+        throw error;
+    }
+}
 
     // Get today's location data for a specific IMEI
     async getTodayLocationData(imei) {

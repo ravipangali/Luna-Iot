@@ -129,23 +129,24 @@ class VehicleController {
         try {
             const user = req.user;
             const vehicleData = req.body;
-
+    
             // Check if device IMEI exists
             const deviceModel = new DeviceModel();
             const device = await deviceModel.getDataByImei(vehicleData.imei);
-
+    
             if (!device) {
                 return errorResponse(res, 'Device with this IMEI does not exist', 400);
             }
-
+    
             const vehicleModel = new VehicleModel();
             const existingVehicle = await vehicleModel.getDataByImei(vehicleData.imei);
-
+    
             if (existingVehicle) {
                 return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
             }
-
-            const vehicle = await vehicleModel.createData(vehicleData);
+    
+            // Create vehicle with user-vehicle relationship
+            const vehicle = await vehicleModel.createData(vehicleData, user.id);
             return successResponse(res, vehicle, 'Vehicle created successfully', 201);
         } catch (error) {
             console.error('Error in createVehicle:', error);
