@@ -6,15 +6,7 @@ class UserModel {
             return await prisma.getClient().user.create({
                 data,
                 include: {
-                    role: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true
-                                }
-                            }
-                        }
-                    }
+                    role: true
                 }
             });
         } catch (error) {
@@ -27,15 +19,7 @@ class UserModel {
         try {
             return await prisma.getClient().user.findMany({
                 include: {
-                    role: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true
-                                }
-                            }
-                        }
-                    }
+                    role: true
                 }
             });
         } catch (error) {
@@ -49,15 +33,7 @@ class UserModel {
             return await prisma.getClient().user.findUnique({
                 where: { phone },
                 include: {
-                    role: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true
-                                }
-                            }
-                        }
-                    }
+                    role: true
                 }
             });
         } catch (error) {
@@ -72,15 +48,7 @@ class UserModel {
                 where: { phone },
                 data,
                 include: {
-                    role: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true
-                                }
-                            }
-                        }
-                    }
+                    role: true
                 }
             });
         } catch (error) {
