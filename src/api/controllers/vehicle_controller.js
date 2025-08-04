@@ -9,52 +9,54 @@ class VehicleController {
         try {
             const user = req.user;
             const vehicleModel = new VehicleModel();
-             // Check if user is Super Admin
-             if (user.role.name === 'Super Admin') {
-                // Super Admin sees all vehicles
+            
+            // Super Admin: all access
+            if (user.role.name === 'Super Admin') {
                 const vehicles = await vehicleModel.getAllData();
                 return successResponse(res, vehicles, 'Vehicles retrieved successfully');
-            } else if (user.role.name === 'Dealer') {
-                // Dealer sees vehicles from their devices + directly assigned vehicles
+            } 
+            // Dealer: vehicles from assigned devices + directly assigned vehicles
+            else if (user.role.name === 'Dealer') {
                 const vehicles = await vehicleModel.getVehiclesForDealer(user.id);
                 return successResponse(res, vehicles, 'Dealer vehicles retrieved successfully');
-            } else {
-                // Regular users see only their assigned vehicles
+            } 
+            // Customer: only directly assigned vehicles
+            else {
                 const vehicles = await vehicleModel.getVehiclesByUserId(user.id);
-                return successResponse(res, vehicles, 'User vehicles retrieved successfully');
+                return successResponse(res, vehicles, 'Customer vehicles retrieved successfully');
             }
-        }  catch (error) {
+        } catch (error) {
             console.error('Error in getAllVehicles:', error);
             return errorResponse(res, 'Failed to retrieve vehicles', 500);
         }
     }
 
-     // Get all vehicles with latest status and location
-     static async getAllVehiclesWithData(req, res) {
-        try{
+    // Get all vehicles with latest status and location
+    static async getAllVehiclesWithData(req, res) {
+        try {
             const user = req.user;
             const vehicleModel = new VehicleModel();
             
-            // Check if user is Super Admin
+            // Super Admin: all access
             if (user.role.name === 'Super Admin') {
-                // Super Admin sees all vehicles
                 const vehicles = await vehicleModel.getAllDataWithStatusAndLocationData();
                 return successResponse(res, vehicles, 'Vehicles with data retrieved successfully');
-            } else if (user.role.name === 'Dealer') {
-                // Dealer sees vehicles from their devices + directly assigned vehicles
+            } 
+            // Dealer: vehicles from assigned devices + directly assigned vehicles
+            else if (user.role.name === 'Dealer') {
                 const vehicles = await vehicleModel.getVehiclesForDealerWithStatusAndLocationData(user.id);
                 return successResponse(res, vehicles, 'Dealer vehicles with data retrieved successfully');
-            } else {
-                // Regular users see only their assigned vehicles
+            } 
+            // Customer: only directly assigned vehicles
+            else {
                 const vehicles = await vehicleModel.getVehiclesByUserIdWithStatusAndLocationData(user.id);
-                return successResponse(res, vehicles, 'User vehicles with data retrieved successfully');
+                return successResponse(res, vehicles, 'Customer vehicles with data retrieved successfully');
             }
         } catch (error) {
             console.error('Error in getAllVehiclesWithData:', error);
             return errorResponse(res, 'Failed to retrieve vehicles with data', 500);
         }
     }
-
 
     // Get vehicle by IMEI
     static async getVehicleByImei(req, res) {
@@ -65,15 +67,16 @@ class VehicleController {
             
             let vehicle;
             
-            // Check if user is Super Admin
+            // Super Admin: can access any vehicle
             if (user.role.name === 'Super Admin') {
-                // Super Admin can access any vehicle
                 vehicle = await vehicleModel.getDataByImei(imei);
-            } else if (user.role.name === 'Dealer') {
-                // Dealer can access vehicles from their devices or directly assigned
+            } 
+            // Dealer: can access vehicles from assigned devices or directly assigned
+            else if (user.role.name === 'Dealer') {
                 vehicle = await vehicleModel.getVehicleByImeiForDealer(imei, user.id);
-            } else {
-                // Regular users can only access their assigned vehicles
+            } 
+            // Customer: can only access directly assigned vehicles
+            else {
                 vehicle = await vehicleModel.getVehicleByImeiForUser(imei, user.id);
             }
 
@@ -97,15 +100,16 @@ class VehicleController {
             
             let vehicle;
             
-            // Check if user is Super Admin
+            // Super Admin: can access any vehicle
             if (user.role.name === 'Super Admin') {
-                // Super Admin can access any vehicle
                 vehicle = await vehicleModel.getDataByImeiWithStatusAndLocationData(imei);
-            } else if (user.role.name === 'Dealer') {
-                // Dealer can access vehicles from their devices or directly assigned
+            } 
+            // Dealer: can access vehicles from assigned devices or directly assigned
+            else if (user.role.name === 'Dealer') {
                 vehicle = await vehicleModel.getVehicleByImeiWithStatusAndLocationDataForDealer(imei, user.id);
-            } else {
-                // Regular users can only access their assigned vehicles
+            } 
+            // Customer: can only access directly assigned vehicles
+            else {
                 vehicle = await vehicleModel.getVehicleByImeiWithStatusAndLocationDataForUser(imei, user.id);
             }
 
@@ -120,16 +124,10 @@ class VehicleController {
         }
     }
 
-    // Create new vehicle
+    // Create new vehicle (Super Admin, Dealer, Customer can create)
     static async createVehicle(req, res) {
         try {
             const user = req.user;
-            
-            // Only Super Admin can create vehicles
-            if (user.role.name !== 'Super Admin') {
-                return errorResponse(res, 'Access denied. Only Super Admin can create vehicles', 403);
-            }
-            
             const vehicleData = req.body;
 
             // Check if device IMEI exists
@@ -155,7 +153,7 @@ class VehicleController {
         }
     }
 
-    // Update vehicle
+    // Update vehicle (Super Admin, Dealer, Customer can update)
     static async updateVehicle(req, res) {
         try {
             const { imei } = req.params;
@@ -189,19 +187,20 @@ class VehicleController {
             const vehicleModel = new VehicleModel();
             let vehicle;
             
-            // Check if user is Super Admin
+            // Super Admin: can update any vehicle
             if (user.role.name === 'Super Admin') {
-                // Super Admin can update any vehicle
                 vehicle = await vehicleModel.updateData(imei, updateData);
-            } else if (user.role.name === 'Dealer') {
-                // Dealer can update vehicles from their devices or directly assigned
+            } 
+            // Dealer: can update vehicles from assigned devices or directly assigned
+            else if (user.role.name === 'Dealer') {
                 const dealerVehicle = await vehicleModel.getVehicleByImeiForDealer(imei, user.id);
                 if (!dealerVehicle) {
                     return errorResponse(res, 'Vehicle not found or access denied', 404);
                 }
                 vehicle = await vehicleModel.updateData(imei, updateData);
-            } else {
-                // Regular users can only update their assigned vehicles
+            } 
+            // Customer: can only update directly assigned vehicles
+            else {
                 const userVehicle = await vehicleModel.getVehicleByImeiForUser(imei, user.id);
                 if (!userVehicle) {
                     return errorResponse(res, 'Vehicle not found or access denied', 404);
@@ -220,7 +219,7 @@ class VehicleController {
         }
     }
 
-    // Delete vehicle
+    // Delete vehicle (only Super Admin)
     static async deleteVehicle(req, res) {
         try {
             const user = req.user;

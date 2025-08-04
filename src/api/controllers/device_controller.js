@@ -8,15 +8,19 @@ class DeviceController {
             const user = req.user;
             const deviceModel = new DeviceModel();
             
-            // Check if user is Super Admin
+            // Super Admin: all access
             if (user.role.name === 'Super Admin') {
-                // Super Admin sees all devices
                 const devices = await deviceModel.getAllData();
                 return successResponse(res, devices, 'Devices retrieved successfully');
-            } else {
-                // Regular users see only their assigned devices
+            } 
+            // Dealer: only view assigned devices
+            else if (user.role.name === 'Dealer') {
                 const devices = await deviceModel.getDevicesByUserId(user.id);
-                return successResponse(res, devices, 'User devices retrieved successfully');
+                return successResponse(res, devices, 'Dealer devices retrieved successfully');
+            } 
+            // Customer: no access to devices
+            else {
+                return errorResponse(res, 'Access denied. Customers cannot view devices', 403);
             }
         }
         catch (error) {
@@ -24,7 +28,6 @@ class DeviceController {
             return errorResponse(res, 'Failed to retrieve devices', 500);
         }
     }
-
 
     // Get device by IMEI
     static async getDeviceByImei(req, res) {
@@ -35,13 +38,17 @@ class DeviceController {
             
             let device;
             
-            // Check if user is Super Admin
+            // Super Admin: can access any device
             if (user.role.name === 'Super Admin') {
-                // Super Admin can access any device
                 device = await deviceModel.getDataByImei(imei);
-            } else {
-                // Regular users can only access their assigned devices
+            } 
+            // Dealer: can only access assigned devices
+            else if (user.role.name === 'Dealer') {
                 device = await deviceModel.getDeviceByImeiForUser(imei, user.id);
+            } 
+            // Customer: no access to devices
+            else {
+                return errorResponse(res, 'Access denied. Customers cannot view devices', 403);
             }
             
             if (!device) {
@@ -55,9 +62,10 @@ class DeviceController {
         }
     }
 
-    // Create new device
+    // Create new device (only Super Admin)
     static async createDevice(req, res) {
-        try {const user = req.user;
+        try {
+            const user = req.user;
             
             // Only Super Admin can create devices
             if (user.role.name !== 'Super Admin') {
@@ -75,28 +83,20 @@ class DeviceController {
         }
     }
 
-    // Update device
+    // Update device (only Super Admin)
     static async updateDevice(req, res) {
         try {
             const { imei } = req.params;
             const user = req.user;
+            
+            // Only Super Admin can update devices
+            if (user.role.name !== 'Super Admin') {
+                return errorResponse(res, 'Access denied. Only Super Admin can update devices', 403);
+            }
+            
             const updateData = req.body;
             const deviceModel = new DeviceModel();
-            
-            let device;
-            
-            // Check if user is Super Admin
-            if (user.role.name === 'Super Admin') {
-                // Super Admin can update any device
-                device = await deviceModel.updateData(imei, updateData);
-            } else {
-                // Regular users can only update their assigned devices
-                const userDevice = await deviceModel.getDeviceByImeiForUser(imei, user.id);
-                if (!userDevice) {
-                    return errorResponse(res, 'Device not found or access denied', 404);
-                }
-                device = await deviceModel.updateData(imei, updateData);
-            }
+            const device = await deviceModel.updateData(imei, updateData);
             
             if (!device) {
                 return errorResponse(res, 'Device not found', 404);
@@ -109,7 +109,7 @@ class DeviceController {
         }
     }
 
-    // Delete device
+    // Delete device (only Super Admin)
     static async deleteDevice(req, res) {
         try {
             const user = req.user;
