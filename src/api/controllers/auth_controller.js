@@ -50,15 +50,7 @@ class AuthController {
                     roleId: defaultRole.id
                 },
                 include: {
-                    role: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true
-                                }
-                            }
-                        }
-                    }
+                    role: true
                 }
         
             });
@@ -84,15 +76,7 @@ class AuthController {
             const user = await prisma.getClient().user.findUnique({
                 where: { phone },
                 include: {
-                    role: {
-                        include: {
-                            permissions: {
-                                include: {
-                                    permission: true
-                                }
-                            }
-                        }
-                    }
+                    role: true
                 }
             });
 
