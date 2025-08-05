@@ -1,112 +1,32 @@
-// src/api/controllers/vehicle_controller.js
 const VehicleModel = require('../../database/models/VehicleModel');
 const DeviceModel = require('../../database/models/DeviceModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 
 class VehicleController {
-    // Get all vehicles
+    
+    // Get all vehicles with complete data (ownership, today's km, latest status and location)
     static async getAllVehicles(req, res) {
         try {
             const user = req.user;
             const vehicleModel = new VehicleModel();
             
-            // Super Admin: all access
-            if (user.role.name === 'Super Admin') {
-                const vehicles = await vehicleModel.getAllData();
-                return successResponse(res, vehicles, 'Vehicles retrieved successfully');
-            } 
-            // Dealer: vehicles from assigned devices + directly assigned vehicles
-            else if (user.role.name === 'Dealer') {
-                const vehicles = await vehicleModel.getVehiclesForDealer(user.id);
-                return successResponse(res, vehicles, 'Dealer vehicles retrieved successfully');
-            } 
-            // Customer: only directly assigned vehicles
-            else {
-                const vehicles = await vehicleModel.getVehiclesByUserId(user.id);
-                return successResponse(res, vehicles, 'Customer vehicles retrieved successfully');
-            }
+            const vehicles = await vehicleModel.getAllVehiclesWithCompleteData(user.id, user.role.name);
+            
+            return successResponse(res, vehicles, 'Vehicles retrieved successfully');
         } catch (error) {
             console.error('Error in getAllVehicles:', error);
             return errorResponse(res, 'Failed to retrieve vehicles', 500);
         }
     }
 
-    // Get all vehicles with latest status and location
-    static async getAllVehiclesWithData(req, res) {
-        try {
-            const user = req.user;
-            const vehicleModel = new VehicleModel();
-            
-            // Super Admin: all access
-            if (user.role.name === 'Super Admin') {
-                const vehicles = await vehicleModel.getAllDataWithStatusAndLocationData();
-                return successResponse(res, vehicles, 'Vehicles with data retrieved successfully');
-            } 
-            // Dealer: vehicles from assigned devices + directly assigned vehicles
-            else if (user.role.name === 'Dealer') {
-                const vehicles = await vehicleModel.getVehiclesForDealerWithStatusAndLocationData(user.id);
-                return successResponse(res, vehicles, 'Dealer vehicles with data retrieved successfully');
-            } 
-            // Customer: only directly assigned vehicles
-            else {
-                const vehicles = await vehicleModel.getVehiclesByUserIdWithStatusAndLocationData(user.id);
-                return successResponse(res, vehicles, 'Customer vehicles with data retrieved successfully');
-            }
-        } catch (error) {
-            console.error('Error in getAllVehiclesWithData:', error);
-            return errorResponse(res, 'Failed to retrieve vehicles with data', 500);
-        }
-    }
-
-    // Get vehicles with ownership type
-    static async getVehiclesWithOwnershipType(req, res) {
-        try {
-            const user = req.user;
-            const vehicleModel = new VehicleModel();
-            
-            let vehicles;
-            
-            // Super Admin: all vehicles with ownership info
-            if (user.role.name === 'Super Admin') {
-                vehicles = await vehicleModel.getAllVehiclesWithOwnershipType(user.id);
-            } 
-            // Dealer: vehicles from assigned devices + directly assigned vehicles
-            else if (user.role.name === 'Dealer') {
-                vehicles = await vehicleModel.getVehiclesForDealerWithOwnershipType(user.id);
-            } 
-            // Customer: only directly assigned vehicles with ownership type
-            else {
-                vehicles = await vehicleModel.getVehiclesByUserIdWithOwnershipType(user.id);
-            }
-            
-            return successResponse(res, vehicles, 'Vehicles with ownership type retrieved successfully');
-        } catch (error) {
-            console.error('Error in getVehiclesWithOwnershipType:', error);
-            return errorResponse(res, 'Failed to retrieve vehicles with ownership type', 500);
-        }
-    }
-
-    // Get vehicle by IMEI
+    // Get vehicle by IMEI with complete data and role-based access
     static async getVehicleByImei(req, res) {
         try {
             const { imei } = req.params;
             const user = req.user;
             const vehicleModel = new VehicleModel();
             
-            let vehicle;
-            
-            // Super Admin: can access any vehicle
-            if (user.role.name === 'Super Admin') {
-                vehicle = await vehicleModel.getDataByImei(imei);
-            } 
-            // Dealer: can access vehicles from assigned devices or directly assigned
-            else if (user.role.name === 'Dealer') {
-                vehicle = await vehicleModel.getVehicleByImeiForDealer(imei, user.id);
-            } 
-            // Customer: can only access directly assigned vehicles
-            else {
-                vehicle = await vehicleModel.getVehicleByImeiForUser(imei, user.id);
-            }
+            const vehicle = await vehicleModel.getVehicleByImeiWithCompleteData(imei, user.id, user.role.name);
 
             if (!vehicle) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
@@ -119,40 +39,7 @@ class VehicleController {
         }
     }
 
-    // Get vehicle by IMEI with latest status and location
-    static async getVehicleByImeiWithData(req, res) {
-        try {
-            const { imei } = req.params;
-            const user = req.user;
-            const vehicleModel = new VehicleModel();
-            
-            let vehicle;
-            
-            // Super Admin: can access any vehicle
-            if (user.role.name === 'Super Admin') {
-                vehicle = await vehicleModel.getDataByImeiWithStatusAndLocationData(imei);
-            } 
-            // Dealer: can access vehicles from assigned devices or directly assigned
-            else if (user.role.name === 'Dealer') {
-                vehicle = await vehicleModel.getVehicleByImeiWithStatusAndLocationDataForDealer(imei, user.id);
-            } 
-            // Customer: can only access directly assigned vehicles
-            else {
-                vehicle = await vehicleModel.getVehicleByImeiWithStatusAndLocationDataForUser(imei, user.id);
-            }
-
-            if (!vehicle) {
-                return errorResponse(res, 'Vehicle not found or access denied', 404);
-            }
-
-            return successResponse(res, vehicle, 'Vehicle with data retrieved successfully');
-        } catch (error) {
-            console.error('Error in getVehicleByImeiWithData:', error);
-            return errorResponse(res, 'Failed to retrieve vehicle with data', 500);
-        }
-    }
-
-    // Create new vehicle (Super Admin, Dealer, Customer can create)
+    // Create new vehicle with user-vehicle relationship
     static async createVehicle(req, res) {
         try {
             const user = req.user;
@@ -182,7 +69,7 @@ class VehicleController {
         }
     }
 
-    // Update vehicle (Super Admin, Dealer, Customer can update)
+    // Update vehicle with role-based access
     static async updateVehicle(req, res) {
         try {
             const { imei } = req.params;
@@ -214,34 +101,21 @@ class VehicleController {
             }
             
             const vehicleModel = new VehicleModel();
-            let vehicle;
             
-            // Super Admin: can update any vehicle
-            if (user.role.name === 'Super Admin') {
-                vehicle = await vehicleModel.updateData(imei, updateData);
-            } 
-            // Dealer: can update vehicles from assigned devices or directly assigned
-            else if (user.role.name === 'Dealer') {
-                const dealerVehicle = await vehicleModel.getVehicleByImeiForDealer(imei, user.id);
-                if (!dealerVehicle) {
-                    return errorResponse(res, 'Vehicle not found or access denied', 404);
-                }
-                vehicle = await vehicleModel.updateData(imei, updateData);
-            } 
-            // Customer: can only update directly assigned vehicles
-            else {
-                const userVehicle = await vehicleModel.getVehicleByImeiForUser(imei, user.id);
-                if (!userVehicle) {
-                    return errorResponse(res, 'Vehicle not found or access denied', 404);
-                }
-                vehicle = await vehicleModel.updateData(imei, updateData);
-            }
+            // Check access based on role
+            const vehicle = await vehicleModel.getVehicleByImeiWithCompleteData(imei, user.id, user.role.name);
             
             if (!vehicle) {
+                return errorResponse(res, 'Vehicle not found or access denied', 404);
+            }
+            
+            const updatedVehicle = await vehicleModel.updateData(imei, updateData);
+            
+            if (!updatedVehicle) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }
 
-            return successResponse(res, vehicle, 'Vehicle updated successfully');
+            return successResponse(res, updatedVehicle, 'Vehicle updated successfully');
         } catch (error) {
             console.error('Error in updateVehicle:', error);
             return errorResponse(res, 'Failed to update vehicle', 500);

@@ -3,7 +3,7 @@ const { calculateDistanceFromLocationData } = require('../../utils/distance_serv
 
 class VehicleModel {
 
-    // Create new vehicle
+    // Create new vehicle with user-vehicle relationship
     async createData(data, userId = null) {
         try {
             const vehicle = await prisma.getClient().vehicle.create({
@@ -94,472 +94,180 @@ class VehicleModel {
         }
     }
 
-    // Get all vehicles with latest status and location data
-    async getAllDataWithStatusAndLocationData() {
+    // Get all vehicles with role-based access, ownership, today's km, latest status and location
+    async getAllVehiclesWithCompleteData(userId, userRole) {
         try {
-            const vehicles = await prisma.getClient().vehicle.findMany();
-
-            // Add latest status and location to each vehicle
-            const vehiclesWithData = await Promise.all(
-                vehicles.map(async (vehicle) => {
-                    const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
-                        prisma.getClient().status.findFirst({
-                            where: { imei: vehicle.imei },
-                            orderBy: { createdAt: 'desc' }
-                        }),
-                        prisma.getClient().location.findFirst({
-                            where: { imei: vehicle.imei },
-                            orderBy: { createdAt: 'desc' }
-                        }),
-                        this.getTodayLocationData(vehicle.imei)
-                    ]);
-
-                    // Calculate today's kilometers
-                    const todayKm = calculateDistanceFromLocationData(todayLocationData);
-
-                    return {
-                        ...vehicle,
-                        latestStatus,
-                        latestLocation,
-                        todayKm
-                    };
-                })
-            );
-
-            return vehiclesWithData;
-        } catch (error) {
-            console.error('ERROR FETCHING ALL VEHICLES WITH DATA: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicles by user ID with latest status and location data
-    async getVehiclesByUserIdWithStatusAndLocationData(userId) {
-        try {
-            const vehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    userVehicles: {
-                        some: {
-                            userId: userId
-                        }
-                    }
-                }
-            });
-
-            // Add latest status and location to each vehicle
-            const vehiclesWithData = await Promise.all(
-                vehicles.map(async (vehicle) => {
-                    const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
-                        prisma.getClient().status.findFirst({
-                            where: { imei: vehicle.imei },
-                            orderBy: { createdAt: 'desc' }
-                        }),
-                        prisma.getClient().location.findFirst({
-                            where: { imei: vehicle.imei },
-                            orderBy: { createdAt: 'desc' }
-                        }),
-                        this.getTodayLocationData(vehicle.imei)
-                    ]);
-
-                    // Calculate today's kilometers
-                    const todayKm = calculateDistanceFromLocationData(todayLocationData);
-
-                    return {
-                        ...vehicle,
-                        latestStatus,
-                        latestLocation,
-                        todayKm
-                    };
-                })
-            );
-
-            return vehiclesWithData;
-        } catch (error) {
-            console.error('ERROR FETCHING USER VEHICLES WITH DATA: ', error);
-            throw error;
-        }
-    }
-
-    // Get all vehicles with ownership type for Super Admin
-    async getAllVehiclesWithOwnershipType(userId) {
-        try {
-            const vehicles = await prisma.getClient().vehicle.findMany({
-                include: {
-                    userVehicles: {
-                        where: {
-                            userId: userId
-                        },
-                        select: {
-                            isMain: true,
-                            allAccess: true,
-                            liveTracking: true,
-                            history: true,
-                            report: true,
-                            vehicleProfile: true,
-                            events: true,
-                            geofence: true,
-                            edit: true,
-                            shareTracking: true
-                        }
-                    }
-                }
-            });
-
-            // Add ownership type to each vehicle
-            const vehiclesWithOwnership = vehicles.map(vehicle => {
-                const userVehicle = vehicle.userVehicles[0]; // Will be undefined if no relationship
-
-                let ownershipType = 'Customer'; // Default: user doesn't exist in user_vehicles
-
-                if (userVehicle) {
-                    if (userVehicle.isMain) {
-                        ownershipType = 'Own';
-                    } else {
-                        ownershipType = 'Shared';
-                    }
-                }
-
-                return {
-                    ...vehicle,
-                    ownershipType,
-                    userVehicle: userVehicle || null
-                };
-            });
-
-            return vehiclesWithOwnership;
-        } catch (error) {
-            console.error('ERROR FETCHING ALL VEHICLES WITH OWNERSHIP TYPE: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicles for Dealer with ownership type
-    async getVehiclesForDealerWithOwnershipType(dealerId) {
-        try {
-            // Get vehicles that are directly assigned to the dealer
-            const directVehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    userVehicles: {
-                        some: {
-                            userId: dealerId
-                        }
-                    }
-                },
-                include: {
-                    device: true,
-                    userVehicles: {
-                        where: {
-                            userId: dealerId
-                        },
-                        select: {
-                            isMain: true,
-                            allAccess: true,
-                            liveTracking: true,
-                            history: true,
-                            report: true,
-                            vehicleProfile: true,
-                            events: true,
-                            geofence: true,
-                            edit: true,
-                            shareTracking: true
-                        }
-                    }
-                }
-            });
-
-            // Get devices assigned to the dealer
-            const dealerDevices = await prisma.getClient().device.findMany({
-                where: {
-                    userDevices: {
-                        some: {
-                            userId: dealerId
-                        }
-                    }
-                },
-                select: {
-                    imei: true
-                }
-            });
-
-            // Get vehicles that belong to dealer's devices
-            const deviceVehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    imei: {
-                        in: dealerDevices.map(device => device.imei)
-                    }
-                },
-                include: {
-                    device: true,
-                    userVehicles: {
-                        where: {
-                            userId: dealerId
-                        },
-                        select: {
-                            isMain: true,
-                            allAccess: true,
-                            liveTracking: true,
-                            history: true,
-                            report: true,
-                            vehicleProfile: true,
-                            events: true,
-                            geofence: true,
-                            edit: true,
-                            shareTracking: true
-                        }
-                    }
-                }
-            });
-
-            // Combine and remove duplicates
-            const allVehicles = [...directVehicles, ...deviceVehicles];
-            const uniqueVehicles = allVehicles.filter((vehicle, index, self) =>
-                index === self.findIndex(v => v.imei === vehicle.imei)
-            );
-
-            // Add ownership type to each vehicle
-            const vehiclesWithOwnership = uniqueVehicles.map(vehicle => {
-                const userVehicle = vehicle.userVehicles[0]; // Will be undefined if no relationship
-
-                let ownershipType = 'Customer'; // Default: user doesn't exist in user_vehicles
-
-                if (userVehicle) {
-                    if (userVehicle.isMain) {
-                        ownershipType = 'Own';
-                    } else {
-                        ownershipType = 'Shared';
-                    }
-                }
-
-                return {
-                    ...vehicle,
-                    ownershipType,
-                    userVehicle: userVehicle || null
-                };
-            });
-
-            return vehiclesWithOwnership;
-        } catch (error) {
-            console.error('ERROR FETCHING DEALER VEHICLES WITH OWNERSHIP TYPE: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicles by user ID with ownership type (for customers)
-    async getVehiclesByUserIdWithOwnershipType(userId) {
-        try {
-            // Get all vehicles that the user has access to
-            const vehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    userVehicles: {
-                        some: {
-                            userId: userId
-                        }
-                    }
-                },
-                include: {
-                    userVehicles: {
-                        where: {
-                            userId: userId
-                        },
-                        select: {
-                            isMain: true,
-                            allAccess: true,
-                            liveTracking: true,
-                            history: true,
-                            report: true,
-                            vehicleProfile: true,
-                            events: true,
-                            geofence: true,
-                            edit: true,
-                            shareTracking: true
-                        }
-                    }
-                }
-            });
-
-            // Add ownership type to each vehicle
-            const vehiclesWithOwnership = vehicles.map(vehicle => {
-                const userVehicle = vehicle.userVehicles[0]; // Will be undefined if no relationship
-
-                let ownershipType = 'Customer'; // Default: user doesn't exist in user_vehicles
-
-                if (userVehicle) {
-                    if (userVehicle.isMain) {
-                        ownershipType = 'Own';
-                    } else {
-                        ownershipType = 'Shared';
-                    }
-                }
-
-                return {
-                    ...vehicle,
-                    ownershipType,
-                    userVehicle: userVehicle || null
-                };
-            });
-
-            return vehiclesWithOwnership;
-        } catch (error) {
-            console.error('ERROR FETCHING VEHICLES WITH OWNERSHIP TYPE: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicles for Dealer role (direct assignments + vehicles from dealer's devices)
-    async getVehiclesForDealer(dealerId) {
-        try {
-            // Get vehicles that are directly assigned to the dealer
-            const directVehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    userVehicles: {
-                        some: {
-                            userId: dealerId
-                        }
-                    }
-                },
-                include: {
-                    device: true
-                }
-            });
-
-            // Get devices assigned to the dealer
-            const dealerDevices = await prisma.getClient().device.findMany({
-                where: {
-                    userDevices: {
-                        some: {
-                            userId: dealerId
-                        }
-                    }
-                },
-                select: {
-                    imei: true
-                }
-            });
-
-            // Get vehicles that belong to dealer's devices
-            const deviceVehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    imei: {
-                        in: dealerDevices.map(device => device.imei)
-                    }
-                },
-                include: {
-                    device: true
-                }
-            });
-
-            // Combine and remove duplicates
-            const allVehicles = [...directVehicles, ...deviceVehicles];
-            const uniqueVehicles = allVehicles.filter((vehicle, index, self) =>
-                index === self.findIndex(v => v.imei === vehicle.imei)
-            );
-
-            return uniqueVehicles;
-        } catch (error) {
-            console.error('ERROR FETCHING DEALER VEHICLES: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicles for Dealer role with status and location data
-    async getVehiclesForDealerWithStatusAndLocationData(dealerId) {
-        try {
-            // Get vehicles for dealer
-            const vehicles = await this.getVehiclesForDealer(dealerId);
-
-            // Add latest status and location to each vehicle
-            const vehiclesWithData = await Promise.all(
-                vehicles.map(async (vehicle) => {
-                    const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
-                        prisma.getClient().status.findFirst({
-                            where: { imei: vehicle.imei },
-                            orderBy: { createdAt: 'desc' }
-                        }),
-                        prisma.getClient().location.findFirst({
-                            where: { imei: vehicle.imei },
-                            orderBy: { createdAt: 'desc' }
-                        }),
-                        this.getTodayLocationData(vehicle.imei)
-                    ]);
-
-                    // Calculate today's kilometers
-                    const todayKm = calculateDistanceFromLocationData(todayLocationData);
-
-                    return {
-                        ...vehicle,
-                        latestStatus,
-                        latestLocation,
-                        todayKm
-                    };
-                })
-            );
-
-            return vehiclesWithData;
-        } catch (error) {
-            console.error('ERROR FETCHING DEALER VEHICLES WITH DATA: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicle by IMEI for Dealer (check if vehicle belongs to dealer's devices or direct assignment)
-    async getVehicleByImeiForDealer(imei, dealerId) {
-        imei = imei.toString();
-        try {
-            // Check if vehicle is directly assigned to dealer
-            const directVehicle = await prisma.getClient().vehicle.findFirst({
-                where: {
-                    imei: imei,
-                    userVehicles: {
-                        some: {
-                            userId: dealerId
-                        }
-                    }
-                },
-                include: {
-                    device: true
-                }
-            });
-
-            if (directVehicle) {
-                return directVehicle;
-            }
-
-            // Check if vehicle belongs to a device assigned to dealer
-            const deviceVehicle = await prisma.getClient().vehicle.findFirst({
-                where: {
-                    imei: imei,
-                    device: {
-                        userDevices: {
+            let vehicles;
+            
+            // Super Admin: all vehicles
+            if (userRole === 'Super Admin') {
+                vehicles = await prisma.getClient().vehicle.findMany();
+            } 
+            // Dealer: vehicles from assigned devices + directly assigned vehicles
+            else if (userRole === 'Dealer') {
+                // Get vehicles that are directly assigned to the dealer
+                const directVehicles = await prisma.getClient().vehicle.findMany({
+                    where: {
+                        userVehicles: {
                             some: {
-                                userId: dealerId
+                                userId: userId
                             }
                         }
                     }
-                },
-                include: {
-                    device: true
-                }
-            });
+                });
 
-            return deviceVehicle;
+                // Get devices assigned to the dealer
+                const dealerDevices = await prisma.getClient().device.findMany({
+                    where: {
+                        userDevices: {
+                            some: {
+                                userId: userId
+                            }
+                        }
+                    },
+                    select: {
+                        imei: true
+                    }
+                });
+
+                // Get vehicles that belong to dealer's devices
+                const deviceVehicles = await prisma.getClient().vehicle.findMany({
+                    where: {
+                        imei: {
+                            in: dealerDevices.map(device => device.imei)
+                        }
+                    }
+                });
+
+                // Combine and remove duplicates
+                const allVehicles = [...directVehicles, ...deviceVehicles];
+                vehicles = allVehicles.filter((vehicle, index, self) =>
+                    index === self.findIndex(v => v.imei === vehicle.imei)
+                );
+            } 
+            // Customer: only directly assigned vehicles
+            else {
+                vehicles = await prisma.getClient().vehicle.findMany({
+                    where: {
+                        userVehicles: {
+                            some: {
+                                userId: userId
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Add complete data to each vehicle
+            const vehiclesWithData = await Promise.all(
+                vehicles.map(async (vehicle) => {
+                    const [latestStatus, latestLocation, todayLocationData, userVehicle] = await Promise.all([
+                        prisma.getClient().status.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        prisma.getClient().location.findFirst({
+                            where: { imei: vehicle.imei },
+                            orderBy: { createdAt: 'desc' }
+                        }),
+                        this.getTodayLocationData(vehicle.imei),
+                        prisma.getClient().userVehicle.findFirst({
+                            where: {
+                                vehicleId: vehicle.id,
+                                userId: userId
+                            }
+                        })
+                    ]);
+
+                    // Calculate today's kilometers
+                    const todayKm = calculateDistanceFromLocationData(todayLocationData);
+
+                    // Determine ownership type
+                    let ownershipType = 'Customer';
+                    if (userVehicle) {
+                        ownershipType = userVehicle.isMain ? 'Own' : 'Shared';
+                    }
+
+                    return {
+                        ...vehicle,
+                        latestStatus,
+                        latestLocation,
+                        todayKm,
+                        ownershipType,
+                        userVehicle: userVehicle || null
+                    };
+                })
+            );
+
+            return vehiclesWithData;
         } catch (error) {
-            console.error('VEHICLE FETCH ERROR FOR DEALER: ', error);
+            console.error('ERROR FETCHING ALL VEHICLES WITH COMPLETE DATA: ', error);
             throw error;
         }
     }
 
-    // Get vehicle by IMEI with status and location data for Dealer
-    async getVehicleByImeiWithStatusAndLocationDataForDealer(imei, dealerId) {
+    // Get vehicle by IMEI with complete data and role-based access
+    async getVehicleByImeiWithCompleteData(imei, userId, userRole) {
         imei = imei.toString();
         try {
-            const vehicle = await this.getVehicleByImeiForDealer(imei, dealerId);
+            let vehicle;
+            
+            // Super Admin: can access any vehicle
+            if (userRole === 'Super Admin') {
+                vehicle = await prisma.getClient().vehicle.findUnique({ where: { imei } });
+            } 
+            // Dealer: can access vehicles from assigned devices or directly assigned
+            else if (userRole === 'Dealer') {
+                // Check if vehicle is directly assigned to dealer
+                const directVehicle = await prisma.getClient().vehicle.findFirst({
+                    where: {
+                        imei: imei,
+                        userVehicles: {
+                            some: {
+                                userId: userId
+                            }
+                        }
+                    }
+                });
+
+                if (directVehicle) {
+                    vehicle = directVehicle;
+                } else {
+                    // Check if vehicle belongs to a device assigned to dealer
+                    vehicle = await prisma.getClient().vehicle.findFirst({
+                        where: {
+                            imei: imei,
+                            device: {
+                                userDevices: {
+                                    some: {
+                                        userId: userId
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } 
+            // Customer: can only access directly assigned vehicles
+            else {
+                vehicle = await prisma.getClient().vehicle.findFirst({
+                    where: {
+                        imei: imei,
+                        userVehicles: {
+                            some: {
+                                userId: userId
+                            }
+                        }
+                    }
+                });
+            }
 
             if (!vehicle) {
                 return null;
             }
 
-            // Get latest status, location, and today's location data
-            const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
+            // Get complete data for the vehicle
+            const [latestStatus, latestLocation, todayLocationData, userVehicle] = await Promise.all([
                 prisma.getClient().status.findFirst({
                     where: { imei },
                     orderBy: { createdAt: 'desc' }
@@ -568,173 +276,34 @@ class VehicleModel {
                     where: { imei },
                     orderBy: { createdAt: 'desc' }
                 }),
-                this.getTodayLocationData(imei)
+                this.getTodayLocationData(imei),
+                prisma.getClient().userVehicle.findFirst({
+                    where: {
+                        vehicleId: vehicle.id,
+                        userId: userId
+                    }
+                })
             ]);
 
             // Calculate today's kilometers
             const todayKm = calculateDistanceFromLocationData(todayLocationData);
 
-            return {
-                ...vehicle,
-                latestStatus,
-                latestLocation,
-                todayKm
-            };
-        } catch (error) {
-            console.error('VEHICLES FETCH ERROR WITH DATA FOR DEALER: ', error);
-            throw error;
-        }
-    }
-
-    // Get all vehicles
-    async getAllData() {
-        try {
-            return await prisma.getClient().vehicle.findMany();
-        } catch (error) {
-            console.error('ERROR FETCHING ALL VEHICLES: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicles by user ID (for non-admin users)
-    async getVehiclesByUserId(userId) {
-        try {
-            const vehicles = await prisma.getClient().vehicle.findMany({
-                where: {
-                    userVehicles: {
-                        some: {
-                            userId: userId
-                        }
-                    }
-                },
-                include: {
-                    device: true
-                }
-            });
-            return vehicles;
-        } catch (error) {
-            console.error('ERROR FETCHING USER VEHICLES: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicle by imei
-    async getDataByImei(imei) {
-        imei = imei.toString();
-        try {
-            const vehicle = await prisma.getClient().vehicle.findUnique({ where: { imei } });
-            return vehicle;
-        } catch (error) {
-            console.error('VEHICLES FETCH ERROR', error);
-            throw error;
-        }
-    }
-
-    // Get vehicle by imei for specific user (check access)
-    async getVehicleByImeiForUser(imei, userId) {
-        imei = imei.toString();
-        try {
-            const vehicle = await prisma.getClient().vehicle.findFirst({
-                where: {
-                    imei: imei,
-                    userVehicles: {
-                        some: {
-                            userId: userId
-                        }
-                    }
-                },
-                include: {
-                    device: true
-                }
-            });
-            return vehicle;
-        } catch (error) {
-            console.error('VEHICLE FETCH ERROR FOR USER: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicle by imei with latest status and location data
-    async getDataByImeiWithStatusAndLocationData(imei) {
-        imei = imei.toString();
-        try {
-            const vehicle = await prisma.getClient().vehicle.findUnique({ where: { imei } });
-
-            if (!vehicle) {
-                return null;
+            // Determine ownership type
+            let ownershipType = 'Customer';
+            if (userVehicle) {
+                ownershipType = userVehicle.isMain ? 'Own' : 'Shared';
             }
 
-            // Get latest status, location, and today's location data
-            const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
-                prisma.getClient().status.findFirst({
-                    where: { imei },
-                    orderBy: { createdAt: 'desc' }
-                }),
-                prisma.getClient().location.findFirst({
-                    where: { imei },
-                    orderBy: { createdAt: 'desc' }
-                }),
-                this.getTodayLocationData(imei)
-            ]);
-
-            // Calculate today's kilometers
-            const todayKm = calculateDistanceFromLocationData(todayLocationData);
-
             return {
                 ...vehicle,
                 latestStatus,
                 latestLocation,
-                todayKm
+                todayKm,
+                ownershipType,
+                userVehicle: userVehicle || null
             };
         } catch (error) {
-            console.error('VEHICLES FETCH ERROR WITH DATA: ', error);
-            throw error;
-        }
-    }
-
-    // Get vehicle by imei with latest status and location data for specific user
-    async getVehicleByImeiWithStatusAndLocationDataForUser(imei, userId) {
-        imei = imei.toString();
-        try {
-            const vehicle = await prisma.getClient().vehicle.findFirst({
-                where: {
-                    imei: imei,
-                    userVehicles: {
-                        some: {
-                            userId: userId
-                        }
-                    }
-                }
-            });
-
-            if (!vehicle) {
-                return null;
-            }
-
-            // Get latest status, location, and today's location data
-            const [latestStatus, latestLocation, todayLocationData] = await Promise.all([
-                prisma.getClient().status.findFirst({
-                    where: { imei },
-                    orderBy: { createdAt: 'desc' }
-                }),
-                prisma.getClient().location.findFirst({
-                    where: { imei },
-                    orderBy: { createdAt: 'desc' }
-                }),
-                this.getTodayLocationData(imei)
-            ]);
-
-            // Calculate today's kilometers
-            const todayKm = calculateDistanceFromLocationData(todayLocationData);
-
-            return {
-                ...vehicle,
-                latestStatus,
-                latestLocation,
-                todayKm
-            };
-        } catch (error) {
-            console.error('VEHICLES FETCH ERROR WITH DATA FOR USER: ', error);
+            console.error('VEHICLE FETCH ERROR WITH COMPLETE DATA: ', error);
             throw error;
         }
     }
