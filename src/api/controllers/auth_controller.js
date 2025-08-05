@@ -10,6 +10,35 @@ class AuthController {
         return crypto.randomBytes(64).toString('hex');
     }
     
+    // Get Current User
+    static async getCurrentUser(req, res) {
+        try {
+            const userId = req.user.id;
+            
+            const user = await prisma.getClient().user.findUnique({
+                where: { id: userId },
+                include: {
+                    role: true
+                }
+            });
+
+            if (!user) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            return successResponse(res, 'User data retrieved successfully', {
+                id: user.id,
+                name: user.name,
+                phone: user.phone,
+                status: user.status,
+                role: user.role.name,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            });
+        } catch (error) {
+            return errorResponse(res, error.message, 500);
+        }
+    }
 
     // User registration
     static async register(req, res) {
