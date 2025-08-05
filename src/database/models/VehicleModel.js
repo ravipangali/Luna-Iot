@@ -350,11 +350,12 @@ class VehicleModel {
 
     // ---- Vehicle Access ----
     // NEW: Assign vehicle access to user
-    async assignVehicleAccessToUser(vehicleId, userId, permissions, assignedByUserId) {
+    async assignVehicleAccessToUser(imei, userId, permissions, assignedByUserId) {
+        imei = imei.toString();
         try {
             // Check if vehicle exists
             const vehicle = await prisma.getClient().vehicle.findUnique({
-                where: { id: vehicleId }
+                where: { imei }
             });
             
             if (!vehicle) {
@@ -372,11 +373,11 @@ class VehicleModel {
             }
 
             // Check if assignment already exists
-            const existingAssignment = await prisma.getClient().userVehicle.findUnique({
+            const existingAssignment = await prisma.getClient().userVehicle.findFirst({
                 where: {
-                    userId_vehicleId: {
-                        userId: userId,
-                        vehicleId: vehicleId
+                    userId: userId,
+                    vehicle: {
+                        imei: imei
                     }
                 }
             });
@@ -389,7 +390,7 @@ class VehicleModel {
             const assignment = await prisma.getClient().userVehicle.create({
                 data: {
                     userId: userId,
-                    vehicleId: vehicleId,
+                    vehicleId: vehicle.id,
                     isMain: false, // Not the main vehicle for this user
                     allAccess: permissions.allAccess || false,
                     liveTracking: permissions.liveTracking || false,
@@ -472,13 +473,16 @@ class VehicleModel {
     }
 
     // NEW: Get vehicle access assignments for a specific vehicle
-    async getVehicleAccessAssignments(vehicleId, userId, userRole) {
+    async getVehicleAccessAssignments(imei, userId, userRole) {
+        imei = imei.toString();
         try {
             // Check if user has permission to view assignments
             if (userRole !== 'Super Admin') {
                 const mainUserVehicle = await prisma.getClient().userVehicle.findFirst({
                     where: {
-                        vehicleId: vehicleId,
+                        vehicle: {
+                            imei: imei
+                        },
                         userId: userId,
                         isMain: true
                     }
@@ -491,7 +495,9 @@ class VehicleModel {
 
             const assignments = await prisma.getClient().userVehicle.findMany({
                 where: {
-                    vehicleId: vehicleId,
+                    vehicle: {
+                        imei: imei
+                    },
                     isMain: false // Only show shared access, not main ownership
                 },
                 include: {
@@ -515,14 +521,15 @@ class VehicleModel {
     }
 
     // NEW: Update vehicle access permissions
-    async updateVehicleAccess(vehicleId, userId, permissions, updatedByUserId) {
+    async updateVehicleAccess(imei, userId, permissions, updatedByUserId) {
+        imei = imei.toString();
         try {
             // Check if assignment exists
-            const assignment = await prisma.getClient().userVehicle.findUnique({
+            const assignment = await prisma.getClient().userVehicle.findFirst({
                 where: {
-                    userId_vehicleId: {
-                        userId: userId,
-                        vehicleId: vehicleId
+                    userId: userId,
+                    vehicle: {
+                        imei: imei
                     }
                 }
             });
@@ -534,10 +541,7 @@ class VehicleModel {
             // Update the assignment
             const updatedAssignment = await prisma.getClient().userVehicle.update({
                 where: {
-                    userId_vehicleId: {
-                        userId: userId,
-                        vehicleId: vehicleId
-                    }
+                    id: assignment.id
                 },
                 data: {
                     allAccess: permissions.allAccess || false,
@@ -570,12 +574,15 @@ class VehicleModel {
     }
 
     // NEW: Remove vehicle access
-    async removeVehicleAccess(vehicleId, userId, removedByUserId) {
+    async removeVehicleAccess(imei, userId, removedByUserId) {
+        imei = imei.toString();
         try {
             const result = await prisma.getClient().userVehicle.deleteMany({
                 where: {
                     userId: userId,
-                    vehicleId: vehicleId,
+                    vehicle: {
+                        imei: imei
+                    },
                     isMain: false // Cannot delete main ownership
                 }
             });

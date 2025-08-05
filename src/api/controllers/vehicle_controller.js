@@ -149,14 +149,14 @@ class VehicleController {
 
 
     // ----- Vehicle Access -----
-     // NEW: Assign vehicle access to user
-     static async assignVehicleAccessToUser(req, res) {
+    // NEW: Assign vehicle access to user
+    static async assignVehicleAccessToUser(req, res) {
         try {
             const user = req.user;
-            const { vehicleId, userPhone, permissions } = req.body;
+            const { imei, userPhone, permissions } = req.body;
             
-            if (!vehicleId || !userPhone || !permissions) {
-                return errorResponse(res, 'Vehicle ID, user phone, and permissions are required', 400);
+            if (!imei || !userPhone || !permissions) {
+                return errorResponse(res, 'IMEI, user phone, and permissions are required', 400);
             }
 
             const vehicleModel = new VehicleModel();
@@ -171,7 +171,7 @@ class VehicleController {
             // Check if user has permission to assign access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
-                    vehicleId.toString(), 
+                    imei, 
                     user.id, 
                     user.role.name
                 );
@@ -183,7 +183,7 @@ class VehicleController {
 
             // Assign vehicle access to user
             const assignment = await vehicleModel.assignVehicleAccessToUser(
-                vehicleId, 
+                imei, 
                 targetUser.id, 
                 permissions, 
                 user.id
@@ -224,15 +224,15 @@ class VehicleController {
     static async getVehicleAccessAssignments(req, res) {
         try {
             const user = req.user;
-            const { vehicleId } = req.params;
+            const { imei } = req.params;
             
-            if (!vehicleId) {
-                return errorResponse(res, 'Vehicle ID is required', 400);
+            if (!imei) {
+                return errorResponse(res, 'IMEI is required', 400);
             }
 
             const vehicleModel = new VehicleModel();
             const assignments = await vehicleModel.getVehicleAccessAssignments(
-                parseInt(vehicleId), 
+                imei, 
                 user.id, 
                 user.role.name
             );
@@ -251,10 +251,10 @@ class VehicleController {
     static async updateVehicleAccess(req, res) {
         try {
             const user = req.user;
-            const { vehicleId, userId, permissions } = req.body;
+            const { imei, userId, permissions } = req.body;
             
-            if (!vehicleId || !userId || !permissions) {
-                return errorResponse(res, 'Vehicle ID, user ID, and permissions are required', 400);
+            if (!imei || !userId || !permissions) {
+                return errorResponse(res, 'IMEI, user ID, and permissions are required', 400);
             }
 
             const vehicleModel = new VehicleModel();
@@ -262,7 +262,7 @@ class VehicleController {
             // Check if user has permission to update access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
-                    vehicleId.toString(), 
+                    imei, 
                     user.id, 
                     user.role.name
                 );
@@ -274,7 +274,7 @@ class VehicleController {
 
             // Update vehicle access
             const assignment = await vehicleModel.updateVehicleAccess(
-                vehicleId, 
+                imei, 
                 userId, 
                 permissions, 
                 user.id
@@ -296,10 +296,10 @@ class VehicleController {
     static async removeVehicleAccess(req, res) {
         try {
             const user = req.user;
-            const { vehicleId, userId } = req.body;
+            const { imei, userId } = req.body;
             
-            if (!vehicleId || !userId) {
-                return errorResponse(res, 'Vehicle ID and user ID are required', 400);
+            if (!imei || !userId) {
+                return errorResponse(res, 'IMEI and user ID are required', 400);
             }
 
             const vehicleModel = new VehicleModel();
@@ -307,7 +307,7 @@ class VehicleController {
             // Check if user has permission to remove access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
-                    vehicleId.toString(), 
+                    imei, 
                     user.id, 
                     user.role.name
                 );
@@ -318,7 +318,7 @@ class VehicleController {
             }
 
             // Remove vehicle access
-            const result = await vehicleModel.removeVehicleAccess(vehicleId, userId, user.id);
+            const result = await vehicleModel.removeVehicleAccess(imei, userId, user.id);
             
             if (!result) {
                 return errorResponse(res, 'Vehicle access not found', 404);
