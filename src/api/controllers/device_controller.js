@@ -1,5 +1,6 @@
 const DeviceModel = require('../../database/models/DeviceModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
+const UserModel = require('../../database/models/UserModel');
 
 class DeviceController {
     // Get all devices
