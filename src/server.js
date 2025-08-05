@@ -25,6 +25,7 @@ app.use(express.json());
 
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use(AuthMiddleware.verifyToken); 
 
 app.get('/', (req, res) => {
@@ -34,7 +35,6 @@ app.get('/', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
-app.use('/api/auth', authRoutes);
 app.use('/api', roleRoutes);
 app.use('/api', userRoutes);
 app.use('/api', deviceRoutes);
