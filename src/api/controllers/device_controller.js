@@ -133,6 +133,92 @@ class DeviceController {
             return errorResponse(res, 'Failed to delete device', 500);
         }
     }
+
+    // More
+    // Assign device to user
+    static async assignDeviceToUser(req, res) {
+        try {
+            const user = req.user;
+            
+            // Only Super Admin can assign devices
+            if (user.role.name !== 'Super Admin') {
+                return errorResponse(res, 'Access denied. Only Super Admin can assign devices', 403);
+            }
+            
+            const { imei, userPhone } = req.body;
+            
+            if (!imei || !userPhone) {
+                return errorResponse(res, 'IMEI and user phone are required', 400);
+            }
+
+            const deviceModel = new DeviceModel();
+            const userModel = new UserModel();
+
+            // Check if user exists and is a dealer
+            const targetUser = await userModel.getUserByPhone(userPhone);
+            if (!targetUser) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            if (targetUser.role.name !== 'Dealer') {
+                return errorResponse(res, 'Only dealers can be assigned devices', 400);
+            }
+
+            // Assign device to user
+            const assignment = await deviceModel.assignDeviceToUser(imei, targetUser.id);
+            
+            return successResponse(res, assignment, 'Device assigned successfully');
+        } catch (error) {
+            console.error('Error in assignDeviceToUser:', error);
+            if (error.message === 'Device not found') {
+                return errorResponse(res, 'Device not found', 404);
+            } else if (error.message === 'User not found or is not a dealer') {
+                return errorResponse(res, 'User not found or is not a dealer', 404);
+            } else if (error.message === 'Device is already assigned to this user') {
+                return errorResponse(res, 'Device is already assigned to this user', 400);
+            }
+            return errorResponse(res, 'Failed to assign device', 500);
+        }
+    }
+
+    // Remove device assignment
+    static async removeDeviceAssignment(req, res) {
+        try {
+            const user = req.user;
+            
+            // Only Super Admin can remove device assignments
+            if (user.role.name !== 'Super Admin') {
+                return errorResponse(res, 'Access denied. Only Super Admin can remove device assignments', 403);
+            }
+            
+            const { imei, userPhone } = req.body;
+            
+            if (!imei || !userPhone) {
+                return errorResponse(res, 'IMEI and user phone are required', 400);
+            }
+
+            const deviceModel = new DeviceModel();
+            const userModel = new UserModel();
+
+            // Check if user exists
+            const targetUser = await userModel.getUserByPhone(userPhone);
+            if (!targetUser) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            // Remove device assignment
+            const result = await deviceModel.removeDeviceAssignment(imei, targetUser.id);
+            
+            if (!result) {
+                return errorResponse(res, 'Device assignment not found', 404);
+            }
+            
+            return successResponse(res, null, 'Device assignment removed successfully');
+        } catch (error) {
+            console.error('Error in removeDeviceAssignment:', error);
+            return errorResponse(res, 'Failed to remove device assignment', 500);
+        }
+    }
 }
 
 module.exports = DeviceController;

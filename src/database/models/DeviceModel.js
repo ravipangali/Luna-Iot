@@ -146,6 +146,100 @@ class DeviceModel {
             throw error;
         }
     }
+
+    // MORE 
+    // Assign device to user
+    async assignDeviceToUser(imei, userId) {
+        imei = imei.toString();
+        try {
+            // First check if device exists
+            const device = await prisma.getClient().device.findUnique({
+                where: { imei }
+            });
+            
+            if (!device) {
+                throw new Error('Device not found');
+            }
+
+            // Check if user exists and is a dealer
+            const user = await prisma.getClient().user.findFirst({
+                where: {
+                    id: userId,
+                    role: {
+                        name: 'Dealer'
+                    }
+                },
+                include: {
+                    role: true
+                }
+            });
+
+            if (!user) {
+                throw new Error('User not found or is not a dealer');
+            }
+
+            // Check if assignment already exists
+            const existingAssignment = await prisma.getClient().userDevice.findUnique({
+                where: {
+                    userId_deviceId: {
+                        userId: userId,
+                        deviceId: device.id
+                    }
+                }
+            });
+
+            if (existingAssignment) {
+                throw new Error('Device is already assigned to this user');
+            }
+
+            // Create the assignment
+            const assignment = await prisma.getClient().userDevice.create({
+                data: {
+                    userId: userId,
+                    deviceId: device.id
+                },
+                include: {
+                    user: {
+                        include: {
+                            role: true
+                        }
+                    },
+                    device: true
+                }
+            });
+
+            return assignment;
+        } catch (error) {
+            console.error('ERROR ASSIGNING DEVICE TO USER: ', error);
+            throw error;
+        }
+    }
+
+    // Remove device assignment
+    async removeDeviceAssignment(imei, userId) {
+        imei = imei.toString();
+        try {
+            const device = await prisma.getClient().device.findUnique({
+                where: { imei }
+            });
+            
+            if (!device) {
+                throw new Error('Device not found');
+            }
+
+            const result = await prisma.getClient().userDevice.deleteMany({
+                where: {
+                    userId: userId,
+                    deviceId: device.id
+                }
+            });
+
+            return result.count > 0;
+        } catch (error) {
+            console.error('ERROR REMOVING DEVICE ASSIGNMENT: ', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = DeviceModel
