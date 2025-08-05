@@ -146,6 +146,193 @@ class VehicleController {
             return errorResponse(res, 'Failed to delete vehicle', 500);
         }
     }
+
+
+    // ----- Vehicle Access -----
+     // NEW: Assign vehicle access to user
+     static async assignVehicleAccessToUser(req, res) {
+        try {
+            const user = req.user;
+            const { vehicleId, userPhone, permissions } = req.body;
+            
+            if (!vehicleId || !userPhone || !permissions) {
+                return errorResponse(res, 'Vehicle ID, user phone, and permissions are required', 400);
+            }
+
+            const vehicleModel = new VehicleModel();
+            const userModel = new UserModel();
+
+            // Check if target user exists
+            const targetUser = await userModel.getUserByPhone(userPhone);
+            if (!targetUser) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            // Check if user has permission to assign access
+            if (user.role.name !== 'Super Admin') {
+                const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
+                    vehicleId.toString(), 
+                    user.id, 
+                    user.role.name
+                );
+                
+                if (!mainUserVehicle || !mainUserVehicle.userVehicle?.isMain) {
+                    return errorResponse(res, 'Access denied. Only main user or Super Admin can assign access', 403);
+                }
+            }
+
+            // Assign vehicle access to user
+            const assignment = await vehicleModel.assignVehicleAccessToUser(
+                vehicleId, 
+                targetUser.id, 
+                permissions, 
+                user.id
+            );
+            
+            return successResponse(res, assignment, 'Vehicle access assigned successfully');
+        } catch (error) {
+            console.error('Error in assignVehicleAccessToUser:', error);
+            if (error.message === 'Vehicle not found') {
+                return errorResponse(res, 'Vehicle not found', 404);
+            } else if (error.message === 'User not found') {
+                return errorResponse(res, 'User not found', 404);
+            } else if (error.message === 'Vehicle access is already assigned to this user') {
+                return errorResponse(res, 'Vehicle access is already assigned to this user', 400);
+            } else if (error.message.includes('Access denied')) {
+                return errorResponse(res, error.message, 403);
+            }
+            return errorResponse(res, 'Failed to assign vehicle access', 500);
+        }
+    }
+
+    // NEW: Get vehicles for access assignment
+    static async getVehiclesForAccessAssignment(req, res) {
+        try {
+            const user = req.user;
+            const vehicleModel = new VehicleModel();
+            
+            const vehicles = await vehicleModel.getVehiclesForAccessAssignment(user.id, user.role.name);
+            
+            return successResponse(res, vehicles, 'Vehicles for access assignment retrieved successfully');
+        } catch (error) {
+            console.error('Error in getVehiclesForAccessAssignment:', error);
+            return errorResponse(res, 'Failed to retrieve vehicles for access assignment', 500);
+        }
+    }
+
+    // NEW: Get vehicle access assignments
+    static async getVehicleAccessAssignments(req, res) {
+        try {
+            const user = req.user;
+            const { vehicleId } = req.params;
+            
+            if (!vehicleId) {
+                return errorResponse(res, 'Vehicle ID is required', 400);
+            }
+
+            const vehicleModel = new VehicleModel();
+            const assignments = await vehicleModel.getVehicleAccessAssignments(
+                parseInt(vehicleId), 
+                user.id, 
+                user.role.name
+            );
+            
+            return successResponse(res, assignments, 'Vehicle access assignments retrieved successfully');
+        } catch (error) {
+            console.error('Error in getVehicleAccessAssignments:', error);
+            if (error.message.includes('Access denied')) {
+                return errorResponse(res, error.message, 403);
+            }
+            return errorResponse(res, 'Failed to retrieve vehicle access assignments', 500);
+        }
+    }
+
+    // NEW: Update vehicle access
+    static async updateVehicleAccess(req, res) {
+        try {
+            const user = req.user;
+            const { vehicleId, userId, permissions } = req.body;
+            
+            if (!vehicleId || !userId || !permissions) {
+                return errorResponse(res, 'Vehicle ID, user ID, and permissions are required', 400);
+            }
+
+            const vehicleModel = new VehicleModel();
+
+            // Check if user has permission to update access
+            if (user.role.name !== 'Super Admin') {
+                const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
+                    vehicleId.toString(), 
+                    user.id, 
+                    user.role.name
+                );
+                
+                if (!mainUserVehicle || !mainUserVehicle.userVehicle?.isMain) {
+                    return errorResponse(res, 'Access denied. Only main user or Super Admin can update access', 403);
+                }
+            }
+
+            // Update vehicle access
+            const assignment = await vehicleModel.updateVehicleAccess(
+                vehicleId, 
+                userId, 
+                permissions, 
+                user.id
+            );
+            
+            return successResponse(res, assignment, 'Vehicle access updated successfully');
+        } catch (error) {
+            console.error('Error in updateVehicleAccess:', error);
+            if (error.message === 'Vehicle access assignment not found') {
+                return errorResponse(res, 'Vehicle access assignment not found', 404);
+            } else if (error.message.includes('Access denied')) {
+                return errorResponse(res, error.message, 403);
+            }
+            return errorResponse(res, 'Failed to update vehicle access', 500);
+        }
+    }
+
+    // NEW: Remove vehicle access
+    static async removeVehicleAccess(req, res) {
+        try {
+            const user = req.user;
+            const { vehicleId, userId } = req.body;
+            
+            if (!vehicleId || !userId) {
+                return errorResponse(res, 'Vehicle ID and user ID are required', 400);
+            }
+
+            const vehicleModel = new VehicleModel();
+
+            // Check if user has permission to remove access
+            if (user.role.name !== 'Super Admin') {
+                const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
+                    vehicleId.toString(), 
+                    user.id, 
+                    user.role.name
+                );
+                
+                if (!mainUserVehicle || !mainUserVehicle.userVehicle?.isMain) {
+                    return errorResponse(res, 'Access denied. Only main user or Super Admin can remove access', 403);
+                }
+            }
+
+            // Remove vehicle access
+            const result = await vehicleModel.removeVehicleAccess(vehicleId, userId, user.id);
+            
+            if (!result) {
+                return errorResponse(res, 'Vehicle access not found', 404);
+            }
+            
+            return successResponse(res, null, 'Vehicle access removed successfully');
+        } catch (error) {
+            console.error('Error in removeVehicleAccess:', error);
+            if (error.message.includes('Access denied')) {
+                return errorResponse(res, error.message, 403);
+            }
+            return errorResponse(res, 'Failed to remove vehicle access', 500);
+        }
+    }
 }
 
 module.exports = VehicleController;

@@ -346,6 +346,246 @@ class VehicleModel {
             throw error;
         }
     }
+
+
+    // ---- Vehicle Access ----
+    // NEW: Assign vehicle access to user
+    async assignVehicleAccessToUser(vehicleId, userId, permissions, assignedByUserId) {
+        try {
+            // Check if vehicle exists
+            const vehicle = await prisma.getClient().vehicle.findUnique({
+                where: { id: vehicleId }
+            });
+            
+            if (!vehicle) {
+                throw new Error('Vehicle not found');
+            }
+
+            // Check if user exists
+            const user = await prisma.getClient().user.findFirst({
+                where: { id: userId },
+                include: { role: true }
+            });
+
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            // Check if assignment already exists
+            const existingAssignment = await prisma.getClient().userVehicle.findUnique({
+                where: {
+                    userId_vehicleId: {
+                        userId: userId,
+                        vehicleId: vehicleId
+                    }
+                }
+            });
+
+            if (existingAssignment) {
+                throw new Error('Vehicle access is already assigned to this user');
+            }
+
+            // Create the assignment with permissions
+            const assignment = await prisma.getClient().userVehicle.create({
+                data: {
+                    userId: userId,
+                    vehicleId: vehicleId,
+                    isMain: false, // Not the main vehicle for this user
+                    allAccess: permissions.allAccess || false,
+                    liveTracking: permissions.liveTracking || false,
+                    history: permissions.history || false,
+                    report: permissions.report || false,
+                    vehicleProfile: permissions.vehicleProfile || false,
+                    events: permissions.events || false,
+                    geofence: permissions.geofence || false,
+                    edit: permissions.edit || false,
+                    shareTracking: permissions.shareTracking || false,
+                    assignedBy: assignedByUserId
+                },
+                include: {
+                    user: {
+                        include: {
+                            role: true
+                        }
+                    },
+                    vehicle: true
+                }
+            });
+
+            return assignment;
+        } catch (error) {
+            console.error('ERROR ASSIGNING VEHICLE ACCESS TO USER: ', error);
+            throw error;
+        }
+    }
+
+    // NEW: Get vehicles for access assignment (filtered by user role and ownership)
+    async getVehiclesForAccessAssignment(userId, userRole) {
+        try {
+            let vehicles;
+
+            if (userRole === 'Super Admin') {
+                // Super Admin can assign access to all vehicles
+                vehicles = await prisma.getClient().vehicle.findMany({
+                    include: {
+                        userVehicles: {
+                            include: {
+                                user: {
+                                    include: {
+                                        role: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Users can only assign access to vehicles where they are the main user
+                vehicles = await prisma.getClient().vehicle.findMany({
+                    where: {
+                        userVehicles: {
+                            some: {
+                                userId: userId,
+                                isMain: true
+                            }
+                        }
+                    },
+                    include: {
+                        userVehicles: {
+                            include: {
+                                user: {
+                                    include: {
+                                        role: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            return vehicles;
+        } catch (error) {
+            console.error('ERROR FETCHING VEHICLES FOR ACCESS ASSIGNMENT: ', error);
+            throw error;
+        }
+    }
+
+    // NEW: Get vehicle access assignments for a specific vehicle
+    async getVehicleAccessAssignments(vehicleId, userId, userRole) {
+        try {
+            // Check if user has permission to view assignments
+            if (userRole !== 'Super Admin') {
+                const mainUserVehicle = await prisma.getClient().userVehicle.findFirst({
+                    where: {
+                        vehicleId: vehicleId,
+                        userId: userId,
+                        isMain: true
+                    }
+                });
+
+                if (!mainUserVehicle) {
+                    throw new Error('Access denied. Only main user or Super Admin can view assignments');
+                }
+            }
+
+            const assignments = await prisma.getClient().userVehicle.findMany({
+                where: {
+                    vehicleId: vehicleId,
+                    isMain: false // Only show shared access, not main ownership
+                },
+                include: {
+                    user: {
+                        include: {
+                            role: true
+                        }
+                    },
+                    vehicle: true
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                }
+            });
+
+            return assignments;
+        } catch (error) {
+            console.error('ERROR FETCHING VEHICLE ACCESS ASSIGNMENTS: ', error);
+            throw error;
+        }
+    }
+
+    // NEW: Update vehicle access permissions
+    async updateVehicleAccess(vehicleId, userId, permissions, updatedByUserId) {
+        try {
+            // Check if assignment exists
+            const assignment = await prisma.getClient().userVehicle.findUnique({
+                where: {
+                    userId_vehicleId: {
+                        userId: userId,
+                        vehicleId: vehicleId
+                    }
+                }
+            });
+
+            if (!assignment) {
+                throw new Error('Vehicle access assignment not found');
+            }
+
+            // Update the assignment
+            const updatedAssignment = await prisma.getClient().userVehicle.update({
+                where: {
+                    userId_vehicleId: {
+                        userId: userId,
+                        vehicleId: vehicleId
+                    }
+                },
+                data: {
+                    allAccess: permissions.allAccess || false,
+                    liveTracking: permissions.liveTracking || false,
+                    history: permissions.history || false,
+                    report: permissions.report || false,
+                    vehicleProfile: permissions.vehicleProfile || false,
+                    events: permissions.events || false,
+                    geofence: permissions.geofence || false,
+                    edit: permissions.edit || false,
+                    shareTracking: permissions.shareTracking || false,
+                    updatedBy: updatedByUserId,
+                    updatedAt: new Date()
+                },
+                include: {
+                    user: {
+                        include: {
+                            role: true
+                        }
+                    },
+                    vehicle: true
+                }
+            });
+
+            return updatedAssignment;
+        } catch (error) {
+            console.error('ERROR UPDATING VEHICLE ACCESS: ', error);
+            throw error;
+        }
+    }
+
+    // NEW: Remove vehicle access
+    async removeVehicleAccess(vehicleId, userId, removedByUserId) {
+        try {
+            const result = await prisma.getClient().userVehicle.deleteMany({
+                where: {
+                    userId: userId,
+                    vehicleId: vehicleId,
+                    isMain: false // Cannot delete main ownership
+                }
+            });
+
+            return result.count > 0;
+        } catch (error) {
+            console.error('ERROR REMOVING VEHICLE ACCESS: ', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = VehicleModel

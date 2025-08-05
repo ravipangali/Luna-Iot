@@ -11,5 +11,11 @@ router.get('/vehicle/:imei', VehicleController.getVehicleByImei);
 router.post('/vehicle/create', VehicleController.createVehicle);
 router.put('/vehicle/update/:imei', VehicleController.updateVehicle);
 router.delete('/vehicle/delete/:imei', VehicleController.deleteVehicle);
+// Vehicle access routes
+router.post('/vehicle/access', VehicleController.assignVehicleAccessToUser);
+router.get('/vehicle/access/available', VehicleController.getVehiclesForAccessAssignment);
+router.get('/vehicle/:vehicleId/access', VehicleController.getVehicleAccessAssignments);
+router.put('/vehicle/access', VehicleController.updateVehicleAccess);
+router.delete('/vehicle/access', VehicleController.removeVehicleAccess);
 
 module.exports = router;
