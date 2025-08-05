@@ -25,8 +25,6 @@ app.use(express.json());
 
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use(AuthMiddleware.verifyToken); 
 
 app.get('/', (req, res) => {
     res.json({
@@ -35,12 +33,13 @@ app.get('/', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
-app.use('/api', roleRoutes);
-app.use('/api', userRoutes);
-app.use('/api', deviceRoutes);
-app.use('/api', locationRoutes);
-app.use('/api', statusRoutes);
-app.use('/api', vehicleRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api', AuthMiddleware.verifyToken, roleRoutes);
+app.use('/api', AuthMiddleware.verifyToken, userRoutes);
+app.use('/api', AuthMiddleware.verifyToken, deviceRoutes);
+app.use('/api', AuthMiddleware.verifyToken, locationRoutes);
+app.use('/api', AuthMiddleware.verifyToken, statusRoutes);
+app.use('/api', AuthMiddleware.verifyToken, vehicleRoutes);
 
 // Middleware
 app.use(errorMiddleware);
