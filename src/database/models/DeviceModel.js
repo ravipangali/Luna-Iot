@@ -37,9 +37,14 @@ class DeviceModel {
     // Get all devices
     async getAllData() {
         try {
-            return await prisma.getClient().device.findMany();
+            return await prisma.getClient().device.findMany({
+                include: {
+                    userDevices: { include: { user: true } },
+                    vehicles: { include: { userVehicles: { include: { user: true } } } }
+                }
+            });;
         } catch (error) {
-            console.error('ERROR FETCHING ALL DEVICES: ',error);
+            console.error('ERROR FETCHING ALL DEVICES: ', error);
             throw error;
         }
     }
@@ -67,7 +72,7 @@ class DeviceModel {
     async getDataByImei(imei) {
         imei = imei.toString();
         try {
-            const device = await prisma.getClient().device.findUnique({where: {imei}});
+            const device = await prisma.getClient().device.findUnique({ where: { imei } });
             return device;
         } catch (error) {
             console.error('DEVICE FETCH ERROR', error);
@@ -78,7 +83,7 @@ class DeviceModel {
     // Get device by id
     async getDataById(id) {
         try {
-            const device = await prisma.getClient().device.findUnique({where: {id}});
+            const device = await prisma.getClient().device.findUnique({ where: { id } });
             return device;
         } catch (error) {
             console.error('DEVICE FETCH ERROR', error);
@@ -86,8 +91,8 @@ class DeviceModel {
         }
     }
 
-     // Get device by imei for specific user (check access)
-     async getDeviceByImeiForUser(imei, userId) {
+    // Get device by imei for specific user (check access)
+    async getDeviceByImeiForUser(imei, userId) {
         imei = imei.toString();
         try {
             const device = await prisma.getClient().device.findFirst({
@@ -106,7 +111,7 @@ class DeviceModel {
             throw error;
         }
     }
-    
+
 
     // Update device
     async updateData(imei, data) {
@@ -126,11 +131,11 @@ class DeviceModel {
             }
 
             return await prisma.getClient().device.update({
-                where: {imei},
+                where: { imei },
                 data: updateData
             });
         } catch (error) {
-            console.error('ERROR UPDATE DEVICE: ',error);
+            console.error('ERROR UPDATE DEVICE: ', error);
             throw error;
         }
     }
@@ -139,10 +144,10 @@ class DeviceModel {
     async deleteData(imei) {
         imei = imei.toString();
         try {
-            const result = await prisma.getClient().device.delete({where: {imei}});
+            const result = await prisma.getClient().device.delete({ where: { imei } });
             return result;
         } catch (error) {
-            console.error('ERROR DELETE DEVICE: ',error);
+            console.error('ERROR DELETE DEVICE: ', error);
             throw error;
         }
     }
@@ -156,7 +161,7 @@ class DeviceModel {
             const device = await prisma.getClient().device.findUnique({
                 where: { imei }
             });
-            
+
             if (!device) {
                 throw new Error('Device not found');
             }
@@ -222,7 +227,7 @@ class DeviceModel {
             const device = await prisma.getClient().device.findUnique({
                 where: { imei }
             });
-            
+
             if (!device) {
                 throw new Error('Device not found');
             }
