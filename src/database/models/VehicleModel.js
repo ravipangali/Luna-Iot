@@ -44,20 +44,11 @@ class VehicleModel {
     // Create user-vehicle relationship with ownership logic
     async createUserVehicleRelationship(userId, vehicleId) {
         try {
-            // Check if this is the user's first vehicle
-            const existingUserVehicles = await prisma.getClient().userVehicle.findMany({
-                where: {
-                    userId: userId
-                }
-            });
-
-            const isMain = existingUserVehicles.length === 0; // First vehicle becomes main
-
             await prisma.getClient().userVehicle.create({
                 data: {
                     userId: userId,
                     vehicleId: vehicleId,
-                    isMain: isMain,
+                    isMain: true,
                     allAccess: true,
                     liveTracking: true,
                     history: true,
