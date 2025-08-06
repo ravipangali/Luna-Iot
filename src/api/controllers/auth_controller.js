@@ -2,12 +2,19 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const prisma = require('../../database/prisma');
 const { successResponse, errorResponse } = require('../utils/response_handler');
+const OtpModel = require('../../database/models/OtpModel');
+const smsService = require('../../services/sms_service');
 
 
 class AuthController {
     // Generate random token
     static generateToken() {
         return crypto.randomBytes(64).toString('hex');
+    }
+
+    // Generate OTP
+    static generateOTP() {
+        return Math.floor(100000 + Math.random() * 900000).toString();
     }
     
     // Get Current User
@@ -40,10 +47,14 @@ class AuthController {
         }
     }
 
-    // User registration
-    static async register(req, res) {
+    // Send OTP for registration
+    static async sendRegistrationOTP(req, res) {
         try {
-            const { name, phone, password } = req.body;
+            const { phone } = req.body;
+
+            if (!phone) {
+                return errorResponse(res, 'Phone number is required', 400);
+            }
 
             // Check if user already exists
             const existingUser = await prisma.getClient().user.findUnique({
@@ -52,6 +63,57 @@ class AuthController {
 
             if (existingUser) {
                 return errorResponse(res, 'User already exists', 400);
+            }
+
+            // Generate OTP
+            const otp = AuthController.generateOTP();
+            const otpModel = new OtpModel();
+
+            // Save OTP to database
+            await otpModel.createOTP(phone, otp);
+
+            // Send SMS
+            const smsResult = await smsService.sendOTP(phone, otp);
+
+            if (smsResult.success) {
+                return successResponse(res, 'OTP sent successfully', {
+                    phone: phone,
+                    message: 'OTP sent to your phone number'
+                });
+            } else {
+                return errorResponse(res, 'Failed to send OTP', 500);
+            }
+        } catch (error) {
+            console.error('Send OTP error:', error);
+            return errorResponse(res, error.message, 500);
+        }
+    }
+
+
+    // Verify OTP and register user
+    static async verifyOTPAndRegister(req, res) {
+        try {
+            const { name, phone, password, otp } = req.body;
+
+            if (!name || !phone || !password || !otp) {
+                return errorResponse(res, 'All fields are required', 400);
+            }
+
+            // Check if user already exists
+            const existingUser = await prisma.getClient().user.findUnique({
+                where: { phone }
+            });
+
+            if (existingUser) {
+                return errorResponse(res, 'User already exists', 400);
+            }
+
+            // Verify OTP
+            const otpModel = new OtpModel();
+            const otpRecord = await otpModel.verifyOTP(phone, otp);
+
+            if (!otpRecord) {
+                return errorResponse(res, 'Invalid or expired OTP', 400);
             }
 
             // Hash password
@@ -81,8 +143,10 @@ class AuthController {
                 include: {
                     role: true
                 }
-        
             });
+
+            // Delete OTP after successful registration
+            await otpModel.deleteOTP(phone);
 
             return successResponse(res, 'User registered successfully', {
                 id: user.id,
@@ -92,6 +156,49 @@ class AuthController {
                 role: user.role.name
             });
         } catch (error) {
+            console.error('Registration error:', error);
+            return errorResponse(res, error.message, 500);
+        }
+    }
+
+    // Resend OTP
+    static async resendOTP(req, res) {
+        try {
+            const { phone } = req.body;
+
+            if (!phone) {
+                return errorResponse(res, 'Phone number is required', 400);
+            }
+
+            // Check if user already exists
+            const existingUser = await prisma.getClient().user.findUnique({
+                where: { phone }
+            });
+
+            if (existingUser) {
+                return errorResponse(res, 'User already exists', 400);
+            }
+
+            // Generate new OTP
+            const otp = AuthController.generateOTP();
+            const otpModel = new OtpModel();
+
+            // Save new OTP to database
+            await otpModel.createOTP(phone, otp);
+
+            // Send SMS
+            const smsResult = await smsService.sendOTP(phone, otp);
+
+            if (smsResult.success) {
+                return successResponse(res, 'OTP resent successfully', {
+                    phone: phone,
+                    message: 'New OTP sent to your phone number'
+                });
+            } else {
+                return errorResponse(res, 'Failed to send OTP', 500);
+            }
+        } catch (error) {
+            console.error('Resend OTP error:', error);
             return errorResponse(res, error.message, 500);
         }
     }

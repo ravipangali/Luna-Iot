@@ -281,3 +281,15 @@ model UserVehicle {
   @@unique([userId, vehicleId])
   @@map("user_vehicles")
 }
+
+
+model Otp {
+  id        Int      @id @default(autoincrement())
+  phone     String   @db.VarChar(100)
+  otp       String   @db.VarChar(6)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("otps")
+  @@index([phone])
+}

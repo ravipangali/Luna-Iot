@@ -7,7 +7,9 @@ class AuthMiddleware {
         // Allow login and register without token
         if (
             req.path === '/api/auth/login' ||
-            req.path === '/api/auth/register'
+            req.path === '/api/auth/register/send-otp' ||
+            req.path === '/api/auth/register/verify-otp' ||
+            req.path === '/api/auth/register/resend-otp'
         ) {
             return next();
         }

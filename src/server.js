@@ -6,6 +6,7 @@ const express = require('express');
 const { errorMiddleware } = require('./api/middleware/error_middleware');
 const socketService = require('./socket/socket_service');
 const AuthMiddleware = require('./api/middleware/auth_middleware');
+const otpCleanupService = require('./services/otp_cleanup_service');
 require('dotenv').config();
 
 
@@ -56,6 +57,11 @@ if (cluster.isMaster) {
     // This block runs in the master process
     console.log(`Master process ${process.pid} is running`);
 
+    
+    // Start OTP cleanup service in master process
+    otpCleanupService.startCleanupScheduler();
+
+    
     // Fork workers (one per CPU core)
     for (let i = 0; i < numCPUs; i++) {
         cluster.fork(); // Create a new worker
