@@ -75,7 +75,6 @@ class VehicleController {
             const vehicle = await vehicleModel.createData(vehicleData, user.id);
             return successResponse(res, vehicle, 'Vehicle created successfully', 201);
         } catch (error) {
-            console.error('Error in createVehicle:', error);
             return errorResponse(res, 'Failed to create vehicle: ' + error.message, 500);
         }
     }

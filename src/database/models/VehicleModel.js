@@ -76,6 +76,22 @@ class VehicleModel {
         }
     }
 
+    // Get vehicle by IMEI
+    async getDataByImei(imei) {
+        try {
+            imei = imei.toString();
+            const vehicle = await prisma.getClient().vehicle.findUnique({
+                where: {
+                    imei: imei
+                }
+            });
+            return vehicle;
+        } catch (error) {
+            console.error('ERROR FETCHING VEHICLE BY IMEI: ', error);
+            throw error;
+        }
+    }
+
     // Get today's location data for a specific IMEI
     async getTodayLocationData(imei) {
         imei = imei.toString();
