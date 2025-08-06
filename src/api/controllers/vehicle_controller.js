@@ -182,12 +182,11 @@ class VehicleController {
                 }
             }
 
-            // Assign vehicle access to user
+            // Assign vehicle access to user (remove assignedByUserId parameter)
             const assignment = await vehicleModel.assignVehicleAccessToUser(
                 imei, 
                 targetUser.id, 
-                permissions, 
-                user.id
+                permissions
             );
             
             return successResponse(res, assignment, 'Vehicle access assigned successfully');
@@ -259,7 +258,7 @@ class VehicleController {
             }
 
             const vehicleModel = new VehicleModel();
-
+            
             // Check if user has permission to update access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
@@ -273,18 +272,18 @@ class VehicleController {
                 }
             }
 
-            // Update vehicle access
             const assignment = await vehicleModel.updateVehicleAccess(
                 imei, 
                 userId, 
-                permissions, 
-                user.id
+                permissions
             );
             
             return successResponse(res, assignment, 'Vehicle access updated successfully');
         } catch (error) {
             console.error('Error in updateVehicleAccess:', error);
-            if (error.message === 'Vehicle access assignment not found') {
+            if (error.message === 'Vehicle not found') {
+                return errorResponse(res, 'Vehicle not found', 404);
+            } else if (error.message === 'Vehicle access assignment not found') {
                 return errorResponse(res, 'Vehicle access assignment not found', 404);
             } else if (error.message.includes('Access denied')) {
                 return errorResponse(res, error.message, 403);
@@ -304,7 +303,7 @@ class VehicleController {
             }
 
             const vehicleModel = new VehicleModel();
-
+            
             // Check if user has permission to remove access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
@@ -318,17 +317,16 @@ class VehicleController {
                 }
             }
 
-            // Remove vehicle access
-            const result = await vehicleModel.removeVehicleAccess(imei, userId, user.id);
-            
-            if (!result) {
-                return errorResponse(res, 'Vehicle access not found', 404);
-            }
+            await vehicleModel.removeVehicleAccess(imei, userId);
             
             return successResponse(res, null, 'Vehicle access removed successfully');
         } catch (error) {
             console.error('Error in removeVehicleAccess:', error);
-            if (error.message.includes('Access denied')) {
+            if (error.message === 'Vehicle not found') {
+                return errorResponse(res, 'Vehicle not found', 404);
+            } else if (error.message === 'Vehicle access assignment not found') {
+                return errorResponse(res, 'Vehicle access assignment not found', 404);
+            } else if (error.message.includes('Access denied')) {
                 return errorResponse(res, error.message, 403);
             }
             return errorResponse(res, 'Failed to remove vehicle access', 500);

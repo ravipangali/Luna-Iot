@@ -350,6 +350,7 @@ class VehicleModel {
 
     // ---- Vehicle Access ----
     // NEW: Assign vehicle access to user
+    // NEW: Assign vehicle access to user
     async assignVehicleAccessToUser(imei, userId, permissions, assignedByUserId) {
         imei = imei.toString();
         try {
@@ -400,8 +401,8 @@ class VehicleModel {
                     events: permissions.events || false,
                     geofence: permissions.geofence || false,
                     edit: permissions.edit || false,
-                    shareTracking: permissions.shareTracking || false,
-                    assignedBy: assignedByUserId
+                    shareTracking: permissions.shareTracking || false
+                    // Remove assignedBy since it's not in the schema
                 },
                 include: {
                     user: {
@@ -522,26 +523,32 @@ class VehicleModel {
 
     // NEW: Update vehicle access permissions
     async updateVehicleAccess(imei, userId, permissions, updatedByUserId) {
-        imei = imei.toString();
         try {
+            // Check if vehicle exists
+            const vehicle = await prisma.getClient().vehicle.findUnique({
+                where: { imei }
+            });
+            
+            if (!vehicle) {
+                throw new Error('Vehicle not found');
+            }
+
             // Check if assignment exists
-            const assignment = await prisma.getClient().userVehicle.findFirst({
+            const existingAssignment = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: userId,
-                    vehicle: {
-                        imei: imei
-                    }
+                    vehicleId: vehicle.id
                 }
             });
 
-            if (!assignment) {
+            if (!existingAssignment) {
                 throw new Error('Vehicle access assignment not found');
             }
 
-            // Update the assignment
+            // Update the assignment with new permissions
             const updatedAssignment = await prisma.getClient().userVehicle.update({
                 where: {
-                    id: assignment.id
+                    id: existingAssignment.id
                 },
                 data: {
                     allAccess: permissions.allAccess || false,
@@ -552,9 +559,8 @@ class VehicleModel {
                     events: permissions.events || false,
                     geofence: permissions.geofence || false,
                     edit: permissions.edit || false,
-                    shareTracking: permissions.shareTracking || false,
-                    updatedBy: updatedByUserId,
-                    updatedAt: new Date()
+                    shareTracking: permissions.shareTracking || false
+                    // Remove assignedBy since it's not in the schema
                 },
                 include: {
                     user: {
@@ -575,19 +581,36 @@ class VehicleModel {
 
     // NEW: Remove vehicle access
     async removeVehicleAccess(imei, userId, removedByUserId) {
-        imei = imei.toString();
         try {
-            const result = await prisma.getClient().userVehicle.deleteMany({
+            // Check if vehicle exists
+            const vehicle = await prisma.getClient().vehicle.findUnique({
+                where: { imei }
+            });
+            
+            if (!vehicle) {
+                throw new Error('Vehicle not found');
+            }
+
+            // Check if assignment exists
+            const existingAssignment = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: userId,
-                    vehicle: {
-                        imei: imei
-                    },
-                    isMain: false // Cannot delete main ownership
+                    vehicleId: vehicle.id
                 }
             });
 
-            return result.count > 0;
+            if (!existingAssignment) {
+                throw new Error('Vehicle access assignment not found');
+            }
+
+            // Delete the assignment
+            await prisma.getClient().userVehicle.delete({
+                where: {
+                    id: existingAssignment.id
+                }
+            });
+
+            return { success: true };
         } catch (error) {
             console.error('ERROR REMOVING VEHICLE ACCESS: ', error);
             throw error;
