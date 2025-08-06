@@ -46,12 +46,22 @@ class VehicleController {
             const user = req.user;
             const vehicleData = req.body;
 
+            // Validate required fields
+            if (!vehicleData.imei || !vehicleData.name || !vehicleData.vehicleNo || !vehicleData.vehicleType) {
+                return errorResponse(res, 'Missing required fields: IMEI, name, vehicle number, and vehicle type are required', 400);
+            }
+
+            // Validate IMEI format
+            if (!/^\d{15}$/.test(vehicleData.imei)) {
+                return errorResponse(res, 'IMEI must be exactly 15 digits', 400);
+            }
+
             // Check if device IMEI exists
             const deviceModel = new DeviceModel();
             const device = await deviceModel.getDataByImei(vehicleData.imei);
 
             if (!device) {
-                return errorResponse(res, 'Device with this IMEI does not exist', 400);
+                return errorResponse(res, 'Device with this IMEI does not exist. Please create the device first.', 400);
             }
 
             const vehicleModel = new VehicleModel();
@@ -66,9 +76,10 @@ class VehicleController {
             return successResponse(res, vehicle, 'Vehicle created successfully', 201);
         } catch (error) {
             console.error('Error in createVehicle:', error);
-            return errorResponse(res, 'Failed to create vehicle', 500);
+            return errorResponse(res, 'Failed to create vehicle: ' + error.message, 500);
         }
     }
+
 
     // Update vehicle with role-based access
     static async updateVehicle(req, res) {

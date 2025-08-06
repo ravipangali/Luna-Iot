@@ -6,19 +6,27 @@ class VehicleModel {
     // Create new vehicle with user-vehicle relationship
     async createData(data, userId = null) {
         try {
+            // Validate required fields
+            if (!data.imei || !data.name || !data.vehicleNo || !data.vehicleType) {
+                throw new Error('Missing required fields');
+            }
+
+            // Convert numeric fields to proper types
+            const vehicleData = {
+                imei: data.imei.toString(),
+                name: data.name,
+                vehicleNo: data.vehicleNo,
+                vehicleType: data.vehicleType,
+                odometer: parseFloat(data.odometer) || 0,
+                mileage: parseFloat(data.mileage) || 0,
+                minimumFuel: parseFloat(data.minimumFuel) || 0,
+                speedLimit: parseInt(data.speedLimit) || 60,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
             const vehicle = await prisma.getClient().vehicle.create({
-                data: {
-                    imei: data.imei.toString(),
-                    name: data.name,
-                    vehicleNo: data.vehicleNo,
-                    vehicleType: data.vehicleType,
-                    odometer: data.odometer,
-                    mileage: data.mileage,
-                    minimumFuel: data.minimumFuel,
-                    speedLimit: data.speedLimit,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                },
+                data: vehicleData,
             });
 
             // Create user-vehicle relationship if userId is provided
