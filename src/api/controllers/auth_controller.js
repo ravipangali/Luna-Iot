@@ -67,6 +67,10 @@ class AuthController {
 
             // Generate OTP
             const otp = AuthController.generateOTP();
+            console.log('=== OTP CREATION DEBUG ===');
+            console.log('Generated OTP:', otp);
+            console.log('OTP type:', typeof otp);
+            
             const otpModel = new OtpModel();
 
             // Save OTP to database
@@ -95,6 +99,9 @@ class AuthController {
         try {
             const { name, phone, password, otp } = req.body;
 
+            console.log('=== REGISTRATION DEBUG ===');
+            console.log('Received data:', { name, phone, otp: otp.substring(0, 2) + '****' });
+
             if (!name || !phone || !password || !otp) {
                 return errorResponse(res, 'All fields are required', 400);
             }
@@ -112,6 +119,8 @@ class AuthController {
             const otpModel = new OtpModel();
             const otpRecord = await otpModel.verifyOTP(phone, otp);
 
+            console.log('OTP verification result:', otpRecord ? 'FOUND' : 'NOT FOUND');
+
             if (!otpRecord) {
                 return errorResponse(res, 'Invalid or expired OTP', 400);
             }
@@ -126,6 +135,8 @@ class AuthController {
             const defaultRole = await prisma.getClient().role.findFirst({
                 where: { name: 'Customer' }
             });
+
+            console.log('Default role found:', defaultRole ? 'YES' : 'NO');
 
             if (!defaultRole) {
                 return errorResponse(res, 'Default role not found', 500);
@@ -144,6 +155,8 @@ class AuthController {
                     role: true
                 }
             });
+
+            console.log('User created successfully with ID:', user.id);
 
             // Delete OTP after successful registration
             await otpModel.deleteOTP(phone);

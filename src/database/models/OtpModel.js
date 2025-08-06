@@ -27,6 +27,11 @@ class OtpModel {
 
     async verifyOTP(phone, otp) {
         try {
+            console.log('=== OTP VERIFICATION DEBUG ===');
+            console.log('Verifying OTP for phone:', phone);
+            console.log('OTP received:', otp);
+            console.log('OTP type:', typeof otp);
+            
             const otpRecord = await prisma.getClient().otp.findFirst({
                 where: {
                     phone,
@@ -36,6 +41,13 @@ class OtpModel {
                     }
                 }
             });
+
+            console.log('OTP record found:', otpRecord ? 'YES' : 'NO');
+            if (otpRecord) {
+                console.log('Stored OTP:', otpRecord.otp);
+                console.log('Stored OTP type:', typeof otpRecord.otp);
+                console.log('Expires at:', otpRecord.expiresAt);
+            }
 
             return otpRecord;
         } catch (error) {
@@ -70,6 +82,7 @@ class OtpModel {
             throw error;
         }
     }
+    
 }
 
 module.exports = OtpModel;
