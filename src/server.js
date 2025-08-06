@@ -6,7 +6,7 @@ const express = require('express');
 const { errorMiddleware } = require('./api/middleware/error_middleware');
 const socketService = require('./socket/socket_service');
 const AuthMiddleware = require('./api/middleware/auth_middleware');
-const otpCleanupService = require('./services/otp_cleanup_service');
+const otpCleanupService = require('./utils/otp_cleanup_service');
 require('dotenv').config();
 
 
