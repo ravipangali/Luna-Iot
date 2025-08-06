@@ -59,13 +59,7 @@ if (cluster.isMaster) {
 
     
     // Start OTP cleanup service in master process
-    try {
-        const otpCleanupService = require('./utils/otp_cleanup_service');
-        otpCleanupService.startCleanupScheduler();
-        console.log('OTP cleanup service started');
-    } catch (error) {
-        console.log('OTP cleanup service not available:', error.message);
-    }
+    otpCleanupService.startCleanupScheduler();
 
     
     // Fork workers (one per CPU core)
