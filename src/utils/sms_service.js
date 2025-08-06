@@ -32,8 +32,11 @@ class SMSService {
             console.log('SMS Response:', response.data);
             
             // Check if SMS was sent successfully
-            if (response.data && response.data.includes('SMS sent successfully')) {
+            // The API returns "SMS-SHOOT-ID/..." when successful
+            if (response.data && response.data.includes('SMS-SHOOT-ID')) {
                 return { success: true, message: 'SMS sent successfully' };
+            } else if (response.data && response.data.includes('ERR:')) {
+                return { success: false, message: 'SMS service error: ' + response.data };
             } else {
                 return { success: false, message: 'Failed to send SMS' };
             }
