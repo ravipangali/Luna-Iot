@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../../database/prisma');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 const OtpModel = require('../../database/models/OtpModel');
-const smsService = require('../../services/sms_service');
+const smsService = require('../../utils/sms_service');
 
 
 class AuthController {
