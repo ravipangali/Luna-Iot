@@ -9,7 +9,10 @@ class AuthMiddleware {
             req.path === '/api/auth/login' ||
             req.path === '/api/auth/register/send-otp' ||
             req.path === '/api/auth/register/verify-otp' ||
-            req.path === '/api/auth/register/resend-otp'
+            req.path === '/api/auth/register/resend-otp' ||
+            req.path === '/api/auth/forgot-password/send-otp' ||
+            req.path === '/api/auth/forgot-password/verify-otp' ||
+            req.path === '/api/auth/forgot-password/reset-password'
         ) {
             return next();
         }
