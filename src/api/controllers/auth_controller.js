@@ -265,6 +265,155 @@ class AuthController {
             return errorResponse(res, error.message, 500);
         }
     }
+
+    // Send OTP for forgot password
+    static async sendForgotPasswordOTP(req, res) {
+        try {
+            const { phone } = req.body;
+
+            if (!phone) {
+                return errorResponse(res, 'Phone number is required', 400);
+            }
+
+            // Check if user exists
+            const existingUser = await prisma.getClient().user.findUnique({
+                where: { phone }
+            });
+
+            if (!existingUser) {
+                return errorResponse(res, 'User not found with this phone number', 404);
+            }
+
+            // Generate OTP
+            const otp = AuthController.generateOTP();
+            const otpModel = new OtpModel();
+
+            // Save OTP to database
+            await otpModel.createOTP(phone, otp);
+
+            // Send SMS
+            const smsResult = await smsService.sendOTP(phone, otp);
+
+            if (smsResult.success) {
+                return successResponse(res, 'OTP sent successfully', {
+                    phone: phone,
+                    message: 'OTP sent to your phone number'
+                });
+            } else {
+                return errorResponse(res, 'Failed to send OTP', 500);
+            }
+        } catch (error) {
+            console.error('Send forgot password OTP error:', error);
+            return errorResponse(res, error.message, 500);
+        }
+    }
+
+    // Verify OTP for forgot password
+    static async verifyForgotPasswordOTP(req, res) {
+        try {
+            const { phone, otp } = req.body;
+
+            if (!phone || !otp) {
+                return errorResponse(res, 'Phone number and OTP are required', 400);
+            }
+
+            // Check if user exists
+            const existingUser = await prisma.getClient().user.findUnique({
+                where: { phone }
+            });
+
+            if (!existingUser) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            // Verify OTP
+            const otpModel = new OtpModel();
+            const otpRecord = await otpModel.verifyOTP(phone, otp);
+
+            if (!otpRecord) {
+                return errorResponse(res, 'Invalid or expired OTP', 400);
+            }
+
+            // Generate reset token (valid for 10 minutes)
+            const resetToken = AuthController.generateToken();
+            
+            // Store reset token in user record (you might want to add a resetToken field to User model)
+            await prisma.getClient().user.update({
+                where: { phone },
+                data: { 
+                    token: resetToken,
+                    updatedAt: new Date()
+                }
+            });
+
+            return successResponse(res, 'OTP verified successfully', {
+                phone: phone,
+                resetToken: resetToken
+            });
+        } catch (error) {
+            console.error('Verify forgot password OTP error:', error);
+            return errorResponse(res, error.message, 500);
+        }
+    }
+
+    // Reset password
+    static async resetPassword(req, res) {
+        try {
+            const { phone, resetToken, newPassword } = req.body;
+
+            if (!phone || !resetToken || !newPassword) {
+                return errorResponse(res, 'Phone number, reset token, and new password are required', 400);
+            }
+
+            // Check if user exists
+            const existingUser = await prisma.getClient().user.findUnique({
+                where: { phone }
+            });
+
+            if (!existingUser) {
+                return errorResponse(res, 'User not found', 404);
+            }
+
+            // Verify reset token
+            if (existingUser.token !== resetToken) {
+                return errorResponse(res, 'Invalid reset token', 400);
+            }
+
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+            // Generate new token
+            const newToken = AuthController.generateToken();
+
+            // Update user with new password and token
+            const updatedUser = await prisma.getClient().user.update({
+                where: { phone },
+                data: {
+                    password: hashedPassword,
+                    token: newToken,
+                    updatedAt: new Date()
+                },
+                include: {
+                    role: true
+                }
+            });
+
+            // Delete OTP after successful password reset
+            const otpModel = new OtpModel();
+            await otpModel.deleteOTP(phone);
+
+            return successResponse(res, 'Password reset successfully', {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                phone: updatedUser.phone,
+                token: updatedUser.token,
+                role: updatedUser.role.name
+            });
+        } catch (error) {
+            console.error('Reset password error:', error);
+            return errorResponse(res, error.message, 500);
+        }
+    }
 }
 
 

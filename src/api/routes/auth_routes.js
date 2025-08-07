@@ -9,6 +9,12 @@ router.post('/register/verify-otp', AuthController.verifyOTPAndRegister);
 router.post('/register/resend-otp', AuthController.resendOTP);
 router.post('/login', AuthController.login);
 
+// Forgot password routes
+router.post('/forgot-password/send-otp', AuthController.sendForgotPasswordOTP);
+router.post('/forgot-password/verify-otp', AuthController.verifyForgotPasswordOTP);
+router.post('/forgot-password/reset-password', AuthController.resetPassword);
+
+
 // Protected routes (authentication required)
 router.post('/logout', AuthMiddleware.verifyToken, AuthController.logout);
 router.get('/me', AuthMiddleware.verifyToken, AuthController.getCurrentUser);
