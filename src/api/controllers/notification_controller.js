@@ -167,24 +167,34 @@ class NotificationController {
         }
     }
 
-    // Update FCM token
     static async updateFcmToken(req, res) {
         try {
-            const userId = req.user.id;
+            const userPhone = req.user.phone; // Use phone instead of ID
             const { fcmToken } = req.body;
+            
+            console.log('Updating FCM token for user phone:', userPhone);
+            console.log('FCM Token:', fcmToken);
             
             if (!fcmToken) {
                 return errorResponse(res, 'FCM token is required', 400);
             }
             
-            await prisma.getClient().user.update({
-                where: { id: userId },
+            // Update using phone number which is guaranteed to exist from auth middleware
+            const updatedUser = await prisma.getClient().user.update({
+                where: { phone: userPhone },
                 data: { fcmToken }
             });
             
-            return successResponse(res, null, 'FCM token updated successfully');
+            console.log('FCM token updated successfully for user phone:', userPhone);
+            return successResponse(res, 'FCM token updated successfully', null);
         } catch (error) {
             console.error('Error in updateFcmToken:', error);
+            
+            // Handle specific Prisma errors
+            if (error.code === 'P2025') {
+                return errorResponse(res, 'User not found for FCM token update', 404);
+            }
+            
             return errorResponse(res, 'Failed to update FCM token', 500);
         }
     }
