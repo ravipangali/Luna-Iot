@@ -37,12 +37,12 @@ app.get('/', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api', AuthMiddleware.verifyToken, roleRoutes);
+app.use('/api', AuthMiddleware.verifyToken, notificationRoutes);
 app.use('/api', AuthMiddleware.verifyToken, userRoutes);
 app.use('/api', AuthMiddleware.verifyToken, deviceRoutes);
 app.use('/api', AuthMiddleware.verifyToken, locationRoutes);
 app.use('/api', AuthMiddleware.verifyToken, statusRoutes);
 app.use('/api', AuthMiddleware.verifyToken, vehicleRoutes);
-app.use('/api', AuthMiddleware.verifyToken, notificationRoutes);
 
 // Middleware
 app.use(errorMiddleware);
