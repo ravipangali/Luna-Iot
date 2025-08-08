@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum NotificationType {
+  all
+  specific
+}
+
 enum SimType {
   NTC
   Ncell
@@ -303,9 +308,7 @@ model Notification {
   id          Int      @id @default(autoincrement())
   title       String   @db.VarChar(255)
   message     String   @db.Text
-  type        String   @db.VarChar(50) // 'all', 'specific', 'role'
-  targetUsers String?  @db.Text // JSON array of user IDs or phone numbers
-  targetRoles String?  @db.Text // JSON array of role names
+  type        NotificationType
   sentBy      User     @relation("NotificationSender", fields: [sentById], references: [id])
   sentById    Int      @map("sent_by_id")
   

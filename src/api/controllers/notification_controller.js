@@ -1,58 +1,171 @@
 const NotificationModel = require('../../database/models/NotificationModel');
 const UserModel = require('../../database/models/UserModel');
-const { successResponse, errorResponse } = require('../utils/response_handler');
-const firebaseService = require('../../utils/firebase_service');
-const prisma = require('../../database/prisma');
+const FirebaseService = require('../../utils/firebase_service');
 
 class NotificationController {
-    // Get all notifications (admin only)
-    static async getAllNotifications(req, res) {
+    // Get notifications based on user role
+    static async getNotifications(req, res) {
         try {
-            const user = req.user;
+            const userId = req.user.id;
+            const userRole = req.user.role.name;
 
-            // Only Super Admin can view all notifications
-            if (user.role.name !== 'Super Admin') {
-                return errorResponse(res, 'Access denied. Only Super Admin can view all notifications', 403);
+            const notifications = await NotificationModel.getNotifications(userId, userRole);
+            
+            return res.status(200).json({
+                success: true,
+                data: notifications
+            });
+        } catch (error) {
+            console.error('GET NOTIFICATIONS ERROR', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to fetch notifications'
+            });
+        }
+    }
+
+    // Create notification (Super Admin only)
+    static async createNotification(req, res) {
+        try {
+            const userId = req.user.id;
+            const userRole = req.user.role.name;
+
+            // Check if user is Super Admin
+            if (userRole !== 'Super Admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Only Super Admin can create notifications'
+                });
             }
 
-            const notificationModel = new NotificationModel();
-            const notifications = await notificationModel.getAllNotifications();
+            const { title, message, type, targetUserIds, targetRoleIds } = req.body;
 
-            return successResponse(res, notifications, 'Notifications retrieved successfully');
+            // Validate required fields
+            if (!title || !message || !type) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Title, message, and type are required'
+                });
+            }
+
+            // Validate type
+            if (!['all', 'specific', 'role'].includes(type)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Type must be all, specific, or role'
+                });
+            }
+
+            // Validate targetUserIds for specific type
+            if (type === 'specific' && (!targetUserIds || !Array.isArray(targetUserIds))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'targetUserIds array is required for specific type'
+                });
+            }
+
+            // Validate targetRoleIds for role type
+            if (type === 'role' && (!targetRoleIds || !Array.isArray(targetRoleIds))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'targetRoleIds array is required for role type'
+                });
+            }
+
+            // Create notification
+            const notification = await NotificationModel.createNotification({
+                title,
+                message,
+                type,
+                sentById: userId,
+                targetUserIds,
+                targetRoleIds
+            });
+
+            // Send push notifications
+            try {
+                let fcmTokens = [];
+
+                if (type === 'all') {
+                    // Get all active users' FCM tokens
+                    const allUsers = await UserModel.getAllUsers();
+                    fcmTokens = allUsers
+                        .filter(user => user.fcmToken && user.status === 'ACTIVE')
+                        .map(user => user.fcmToken);
+                } else if (type === 'specific' && targetUserIds) {
+                    // Get specific users' FCM tokens
+                    const specificUsers = await Promise.all(
+                        targetUserIds.map(id => UserModel.getUserById(id))
+                    );
+                    fcmTokens = specificUsers
+                        .filter(user => user && user.fcmToken && user.status === 'ACTIVE')
+                        .map(user => user.fcmToken);
+                } else if (type === 'role' && targetRoleIds) {
+                    // Get users with specific roles' FCM tokens
+                    const usersWithRoles = await UserModel.getAllUsers();
+                    fcmTokens = usersWithRoles
+                        .filter(user => 
+                            targetRoleIds.includes(user.roleId) && 
+                            user.fcmToken && 
+                            user.status === 'ACTIVE'
+                        )
+                        .map(user => user.fcmToken);
+                }
+
+                if (fcmTokens.length > 0) {
+                    await FirebaseService.sendNotificationToMultipleUsers(
+                        fcmTokens,
+                        title,
+                        message,
+                        { notificationId: notification.id.toString() }
+                    );
+                }
+            } catch (firebaseError) {
+                console.error('Firebase notification error:', firebaseError);
+                // Don't fail the request if Firebase fails
+            }
+
+            return res.status(201).json({
+                success: true,
+                message: 'Notification created successfully',
+                data: notification
+            });
         } catch (error) {
-            console.error('Error in getAllNotifications:', error);
-            return errorResponse(res, 'Failed to retrieve notifications', 500);
+            console.error('CREATE NOTIFICATION ERROR', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to create notification'
+            });
         }
     }
 
-    // Get user's notifications
-    static async getUserNotifications(req, res) {
+    // Delete notification (Super Admin only)
+    static async deleteNotification(req, res) {
         try {
             const userId = req.user.id;
-            const notificationModel = new NotificationModel();
-            const notifications = await notificationModel.getUserNotifications(userId);
+            const userRole = req.user.role.name;
+            const notificationId = parseInt(req.params.id);
 
-            return successResponse(res, notifications, 'User notifications retrieved successfully');
+            // Check if user is Super Admin
+            if (userRole !== 'Super Admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Only Super Admin can delete notifications'
+                });
+            }
+
+            await NotificationModel.deleteNotification(notificationId);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Notification deleted successfully'
+            });
         } catch (error) {
-            console.error('Error in getUserNotifications:', error);
-            return errorResponse(res, 'Failed to retrieve user notifications', 500);
-        }
-    }
-
-    // Get unread notification count
-    static async getUnreadNotificationCount(req, res) {
-        try {
-            const userId = req.user.id;
-            const notificationModel = new NotificationModel();
-            const count = await notificationModel.getUnreadNotificationCount(userId);
-
-            // Ensure count is a valid number
-            const validCount = typeof count === 'number' ? count : 0;
-
-            return successResponse(res, { count: validCount }, 'Unread notification count retrieved successfully');
-        } catch (error) {
-            console.error('Error in getUnreadNotificationCount:', error);
-            return errorResponse(res, 'Failed to retrieve unread notification count', 500);
+            console.error('DELETE NOTIFICATION ERROR', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to delete notification'
+            });
         }
     }
 
@@ -60,156 +173,39 @@ class NotificationController {
     static async markNotificationAsRead(req, res) {
         try {
             const userId = req.user.id;
-            const { notificationId } = req.params;
+            const notificationId = parseInt(req.params.notificationId);
 
-            const notificationModel = new NotificationModel();
-            await notificationModel.markNotificationAsRead(userId, parseInt(notificationId));
+            await NotificationModel.markNotificationAsRead(userId, notificationId);
 
-            return successResponse(res, null, 'Notification marked as read successfully');
-        } catch (error) {
-            console.error('Error in markNotificationAsRead:', error);
-            return errorResponse(res, 'Failed to mark notification as read', 500);
-        }
-    }
-
-    // Create and send notification
-    static async createNotification(req, res) {
-        try {
-            const user = req.user;
-
-            // Only Super Admin can create notifications
-            if (user.role.name !== 'Super Admin') {
-                return errorResponse(res, 'Access denied. Only Super Admin can create notifications', 403);
-            }
-
-            const { title, message, type, targetUsers, targetRoles } = req.body;
-
-            if (!title || !message || !type) {
-                return errorResponse(res, 'Title, message, and type are required', 400);
-            }
-
-            const notificationModel = new NotificationModel();
-            const userModel = new UserModel();
-
-            // Create notification
-            const notification = await notificationModel.createNotification({
-                title,
-                message,
-                type,
-                targetUsers,
-                targetRoles,
-                sentById: user.id
+            return res.status(200).json({
+                success: true,
+                message: 'Notification marked as read'
             });
-
-            // Send push notifications
-            let fcmTokens = [];
-
-            if (type === 'all') {
-                // Get all active users' FCM tokens
-                const allUsers = await userModel.getAllUsers();
-                fcmTokens = allUsers
-                    .filter(u => u.fcmToken && u.status === 'ACTIVE')
-                    .map(u => u.fcmToken);
-            } else if (type === 'specific' && targetUsers) {
-                // Get specific users' FCM tokens
-                const targetUserIds = JSON.parse(targetUsers);
-                const specificUsers = await Promise.all(
-                    targetUserIds.map(id => userModel.getUserById(id))
-                );
-                fcmTokens = specificUsers
-                    .filter(u => u && u.fcmToken && u.status === 'ACTIVE')
-                    .map(u => u.fcmToken);
-            } else if (type === 'role' && targetRoles) {
-                // Get users by role FCM tokens
-                const roleNames = JSON.parse(targetRoles);
-                const roleUsers = await prisma.getClient().user.findMany({
-                    where: {
-                        role: {
-                            name: {
-                                in: roleNames
-                            }
-                        },
-                        status: 'ACTIVE',
-                        fcmToken: {
-                            not: null
-                        }
-                    }
-                });
-                fcmTokens = roleUsers.map(u => u.fcmToken);
-            }
-
-            // Send push notifications
-            if (fcmTokens.length > 0) {
-                await firebaseService.sendNotificationToMultipleUsers(fcmTokens, title, message);
-            }
-
-            return successResponse(res, notification, 'Notification created and sent successfully', 201);
         } catch (error) {
-            console.error('Error in createNotification:', error);
-            return errorResponse(res, 'Failed to create notification', 500);
-        }
-    }
-
-    // Delete notification (admin only)
-    static async deleteNotification(req, res) {
-        try {
-            const user = req.user;
-
-            // Only Super Admin can delete notifications
-            if (user.role.name !== 'Super Admin') {
-                return errorResponse(res, 'Access denied. Only Super Admin can delete notifications', 403);
-            }
-
-            const { id } = req.params;
-            const notificationModel = new NotificationModel();
-            await notificationModel.deleteNotification(parseInt(id));
-
-            return successResponse(res, null, 'Notification deleted successfully');
-        } catch (error) {
-            console.error('Error in deleteNotification:', error);
-            return errorResponse(res, 'Failed to delete notification', 500);
-        }
-    }
-
-    static async updateFcmToken(req, res) {
-        try {
-            const { fcmToken, phone } = req.body; // Get phone from request body
-            const userPhone = phone || req.user.phone; // Fallback to auth middleware phone
-
-
-            if (!fcmToken) {
-                return errorResponse(res, 'FCM token is required', 400);
-            }
-
-            if (!userPhone) {
-                return errorResponse(res, 'User phone is required', 400);
-            }
-
-            // First check if user exists
-            const userModel = new UserModel();
-            const existingUser = await userModel.getUserByPhone(userPhone);
-
-            if (!existingUser) {
-                console.log('User not found for phone:', userPhone);
-                return errorResponse(res, 'User not found', 404);
-            }
-
-            // Update using phone number
-            await prisma.getClient().user.update({
-                where: { phone: userPhone },
-                data: { fcmToken }
+            console.error('MARK NOTIFICATION AS READ ERROR', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to mark notification as read'
             });
+        }
+    }
 
-            return successResponse(res, 'FCM token updated successfully', null);
+    // Get unread notification count
+    static async getUnreadNotificationCount(req, res) {
+        try {
+            const userId = req.user.id;
+            const count = await NotificationModel.getUnreadNotificationCount(userId);
+
+            return res.status(200).json({
+                success: true,
+                data: { count }
+            });
         } catch (error) {
-            console.error('Error in updateFcmToken:', error);
-
-            // Handle specific Prisma errors
-            if (error.code === 'P2025') {
-                return errorResponse(res, 'User not found for FCM token update', 404);
-            }
-
-            return errorResponse(res, 'Failed to update FCM token', 500);
+            console.error('GET UNREAD COUNT ERROR', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to get unread count'
+            });
         }
     }
 }

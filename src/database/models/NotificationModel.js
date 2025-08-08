@@ -8,8 +8,6 @@ class NotificationModel {
                     title: data.title,
                     message: data.message,
                     type: data.type, // 'all', 'specific', 'role'
-                    targetUsers: data.targetUsers ? JSON.stringify(data.targetUsers) : null,
-                    targetRoles: data.targetRoles ? JSON.stringify(data.targetRoles) : null,
                     sentById: data.sentById
                 },
                 include: {
@@ -20,6 +18,53 @@ class NotificationModel {
                     }
                 }
             });
+
+            // Create user-notification relations based on type
+            if (data.type === 'all') {
+                // Get all active users
+                const allUsers = await prisma.getClient().user.findMany({
+                    where: { status: 'ACTIVE' }
+                });
+                
+                // Create user-notification relations for all users
+                await Promise.all(allUsers.map(user => 
+                    prisma.getClient().userNotification.create({
+                        data: {
+                            userId: user.id,
+                            notificationId: notification.id
+                        }
+                    })
+                ));
+            } else if (data.type === 'specific' && data.targetUserIds) {
+                // Create user-notification relations for specific users
+                await Promise.all(data.targetUserIds.map(userId => 
+                    prisma.getClient().userNotification.create({
+                        data: {
+                            userId: userId,
+                            notificationId: notification.id
+                        }
+                    })
+                ));
+            } else if (data.type === 'role' && data.targetRoleIds) {
+                // Get users with specific roles
+                const usersWithRoles = await prisma.getClient().user.findMany({
+                    where: {
+                        roleId: { in: data.targetRoleIds },
+                        status: 'ACTIVE'
+                    }
+                });
+                
+                // Create user-notification relations for users with specific roles
+                await Promise.all(usersWithRoles.map(user => 
+                    prisma.getClient().userNotification.create({
+                        data: {
+                            userId: user.id,
+                            notificationId: notification.id
+                        }
+                    })
+                ));
+            }
+
             return notification;
         } catch (error) {
             console.error('NOTIFICATION CREATION ERROR', error);
@@ -27,58 +72,53 @@ class NotificationModel {
         }
     }
 
-    async getAllNotifications() {
+    async getNotifications(userId, userRole) {
         try {
-            return await prisma.getClient().notification.findMany({
-                include: {
-                    sentBy: {
-                        include: {
-                            role: true
-                        }
-                    },
-                    userNotifications: {
-                        include: {
-                            user: {
-                                include: {
-                                    role: true
+            // If user is Super Admin, return all notifications
+            if (userRole === 'Super Admin') {
+                return await prisma.getClient().notification.findMany({
+                    include: {
+                        sentBy: {
+                            include: {
+                                role: true
+                            }
+                        },
+                        userNotifications: {
+                            include: {
+                                user: {
+                                    include: {
+                                        role: true
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                orderBy: {
-                    createdAt: 'desc'
-                }
-            });
-        } catch (error) {
-            console.error('ERROR FETCHING ALL NOTIFICATIONS', error);
-            throw error;
-        }
-    }
-
-    async getNotificationById(id) {
-        try {
-            return await prisma.getClient().notification.findUnique({
-                where: { id },
-                include: {
-                    sentBy: {
-                        include: {
-                            role: true
-                        }
                     },
-                    userNotifications: {
-                        include: {
-                            user: {
-                                include: {
-                                    role: true
+                    orderBy: {
+                        createdAt: 'desc'
+                    }
+                });
+            } else {
+                // For other roles, return only notifications they have access to
+                return await prisma.getClient().userNotification.findMany({
+                    where: { userId },
+                    include: {
+                        notification: {
+                            include: {
+                                sentBy: {
+                                    include: {
+                                        role: true
+                                    }
                                 }
                             }
                         }
+                    },
+                    orderBy: {
+                        createdAt: 'desc'
                     }
-                }
-            });
+                });
+            }
         } catch (error) {
-            console.error('ERROR FETCHING NOTIFICATION BY ID', error);
+            console.error('ERROR FETCHING NOTIFICATIONS', error);
             throw error;
         }
     }
@@ -90,31 +130,6 @@ class NotificationModel {
             });
         } catch (error) {
             console.error('ERROR DELETING NOTIFICATION', error);
-            throw error;
-        }
-    }
-
-    async getUserNotifications(userId) {
-        try {
-            return await prisma.getClient().userNotification.findMany({
-                where: { userId },
-                include: {
-                    notification: {
-                        include: {
-                            sentBy: {
-                                include: {
-                                    role: true
-                                }
-                            }
-                        }
-                    }
-                },
-                orderBy: {
-                    createdAt: 'desc'
-                }
-            });
-        } catch (error) {
-            console.error('ERROR FETCHING USER NOTIFICATIONS', error);
             throw error;
         }
     }
