@@ -2,6 +2,7 @@ const NotificationModel = require('../../database/models/NotificationModel');
 const UserModel = require('../../database/models/UserModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 const firebaseService = require('../../utils/firebase_service');
+const prisma = require('../../database/prisma'); 
 
 class NotificationController {
     // Get all notifications (admin only)
