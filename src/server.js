@@ -12,13 +12,13 @@ require('dotenv').config();
 
 // IMPORT Routes
 const authRoutes = require('./api/routes/auth_routes');
+const notificationRoutes = require('./api/routes/notification_routes');
 const roleRoutes = require('./api/routes/role_routes');
 const userRoutes = require('./api/routes/user_routes');
 const deviceRoutes = require('./api/routes/device_routes');
 const locationRoutes = require('./api/routes/location_routes');
 const statusRoutes = require('./api/routes/status_routes');
 const vehicleRoutes = require('./api/routes/vehicle_routes');
-const notificationRoutes = require('./api/routes/notification_routes');
 
 // Express App
 const app = express();

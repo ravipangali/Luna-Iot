@@ -17,6 +17,6 @@ router.get('/user/notifications/unread-count', AuthMiddleware.verifyToken, Notif
 router.put('/user/notification/:notificationId/read', AuthMiddleware.verifyToken, NotificationController.markNotificationAsRead);
 
 // FCM token update
-router.put('/user/fcm-token', AuthMiddleware.verifyToken, NotificationController.updateFcmToken);
+router.put('/fcm-token', AuthMiddleware.verifyToken, NotificationController.updateFcmToken);
 
 module.exports = router;
