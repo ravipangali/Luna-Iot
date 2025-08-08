@@ -99,7 +99,7 @@ class NotificationModel {
                 });
             } else {
                 // For other roles, return only notifications they have access to
-                return await prisma.getClient().userNotification.findMany({
+                const userNotifications = await prisma.getClient().userNotification.findMany({
                     where: { userId },
                     include: {
                         notification: {
@@ -116,6 +116,9 @@ class NotificationModel {
                         createdAt: 'desc'
                     }
                 });
+                
+                // Transform the data to match the expected format
+                return userNotifications.map(un => un.notification);
             }
         } catch (error) {
             console.error('ERROR FETCHING NOTIFICATIONS', error);
