@@ -1,7 +1,7 @@
 const prisma = require('../prisma');
 
 class UserModel {
-    async createUser(data) {
+    static async createUser(data) {
         try {
             return await prisma.getClient().user.create({
                 data,
@@ -15,7 +15,7 @@ class UserModel {
         }
     }
 
-    async getAllUsers() {
+    static async getAllUsers() {
         try {
             return await prisma.getClient().user.findMany({
                 include: {
@@ -28,7 +28,7 @@ class UserModel {
         }
     }
 
-    async getUserByPhone(phone) {
+    static async getUserByPhone(phone) {
         try {
             return await prisma.getClient().user.findUnique({
                 where: { phone },
@@ -42,7 +42,7 @@ class UserModel {
         }
     }
 
-    async getUserById(id) {
+    static async getUserById(id) {
         try {
             return await prisma.getClient().user.findUnique({
                 where: { id: parseInt(id) },
@@ -56,7 +56,7 @@ class UserModel {
         }
     }
 
-    async updateUser(phone, data) {
+    static async updateUser(phone, data) {
         try {
             return await prisma.getClient().user.update({
                 where: { phone },
@@ -71,7 +71,7 @@ class UserModel {
         }
     }
 
-    async deleteUser(phone) {
+    static async deleteUser(phone) {
         try {
             return await prisma.getClient().user.delete({
                 where: { phone }
