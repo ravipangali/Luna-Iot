@@ -7,16 +7,16 @@ const { corsMiddleware } = require('../middleware/cors_middleware');
 router.use(corsMiddleware);
 
 // Admin routes (Super Admin only)
-router.get('/notifications', AuthMiddleware.verifyToken, NotificationController.getAllNotifications);
-router.post('/notification/create', AuthMiddleware.verifyToken, NotificationController.createNotification);
-router.delete('/notification/:id', AuthMiddleware.verifyToken, NotificationController.deleteNotification);
+router.get('/notifications', NotificationController.getAllNotifications);
+router.post('/notification/create', NotificationController.createNotification);
+router.delete('/notification/:id', NotificationController.deleteNotification);
 
 // User routes
-router.get('/user/notifications', AuthMiddleware.verifyToken, NotificationController.getUserNotifications);
-router.get('/user/notifications/unread-count', AuthMiddleware.verifyToken, NotificationController.getUnreadNotificationCount);
-router.put('/user/notification/:notificationId/read', AuthMiddleware.verifyToken, NotificationController.markNotificationAsRead);
+router.get('/user/notifications', NotificationController.getUserNotifications);
+router.get('/user/notifications/unread-count', NotificationController.getUnreadNotificationCount);
+router.put('/user/notification/:notificationId/read', NotificationController.markNotificationAsRead);
 
 // FCM token update
-router.put('/fcm-token', AuthMiddleware.verifyToken, NotificationController.updateFcmToken);
+router.put('/fcm-token', NotificationController.updateFcmToken);
 
 module.exports = router;
