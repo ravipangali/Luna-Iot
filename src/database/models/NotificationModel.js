@@ -1,7 +1,7 @@
 const prisma = require('../prisma');
 
 class NotificationModel {
-    async createNotification(data) {
+    static async createNotification(data) {
         try {
             const notification = await prisma.getClient().notification.create({
                 data: {
@@ -72,7 +72,7 @@ class NotificationModel {
         }
     }
 
-    async getNotifications(userId, userRole) {
+    static async getNotifications(userId, userRole) {
         try {
             // If user is Super Admin, return all notifications
             if (userRole === 'Super Admin') {
@@ -126,7 +126,7 @@ class NotificationModel {
         }
     }
 
-    async deleteNotification(id) {
+    static async deleteNotification(id) {
         try {
             return await prisma.getClient().notification.delete({
                 where: { id }
@@ -137,7 +137,7 @@ class NotificationModel {
         }
     }
 
-    async markNotificationAsRead(userId, notificationId) {
+    static async markNotificationAsRead(userId, notificationId) {
         try {
             return await prisma.getClient().userNotification.update({
                 where: {
@@ -156,7 +156,7 @@ class NotificationModel {
         }
     }
 
-    async getUnreadNotificationCount(userId) {
+    static async getUnreadNotificationCount(userId) {
         try {
             const count = await prisma.getClient().userNotification.count({
                 where: {
