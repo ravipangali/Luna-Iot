@@ -173,8 +173,6 @@ class NotificationController {
             const { fcmToken, phone } = req.body; // Get phone from request body
             const userPhone = phone || req.user.phone; // Fallback to auth middleware phone
             
-            console.log('Updating FCM token for user phone:', userPhone);
-            console.log('FCM Token:', fcmToken);
             
             if (!fcmToken) {
                 return errorResponse(res, 'FCM token is required', 400);
@@ -194,12 +192,11 @@ class NotificationController {
             }
             
             // Update using phone number
-            const updatedUser = await prisma.getClient().user.update({
+            await prisma.getClient().user.update({
                 where: { phone: userPhone },
                 data: { fcmToken }
             });
             
-            console.log('FCM token updated successfully for user phone:', userPhone);
             return successResponse(res, 'FCM token updated successfully', null);
         } catch (error) {
             console.error('Error in updateFcmToken:', error);
