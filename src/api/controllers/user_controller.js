@@ -57,10 +57,29 @@ class UserController {
         try {
             const { phone } = req.params;
             const updateData = req.body;
+            
+            console.log('Updating user with phone:', phone);
+            console.log('Update data:', updateData);
+            
             const userModel = new UserModel();
+            
+            // First check if user exists
+            const existingUser = await userModel.getUserByPhone(phone);
+            if (!existingUser) {
+                console.log('User not found for phone:', phone);
+                return errorResponse(res, 'User not found', 404);
+            }
+            
             const user = await userModel.updateUser(phone, updateData);
             return successResponse(res, user, 'User updated successfully');
         } catch (error) {
+            console.error('Error in updateUser controller:', error);
+            
+            // Handle specific Prisma errors
+            if (error.code === 'P2025') {
+                return errorResponse(res, 'User not found for update', 404);
+            }
+            
             return errorResponse(res, 'Failed to update user', 500);
         }
     }

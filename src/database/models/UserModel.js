@@ -42,6 +42,20 @@ class UserModel {
         }
     }
 
+    async getUserById(id) {
+        try {
+            return await prisma.getClient().user.findUnique({
+                where: { id: parseInt(id) },
+                include: {
+                    role: true
+                }
+            });
+        } catch (error) {
+            console.error('ERROR FETCHING USER BY ID', error);
+            throw error;
+        }
+    }
+
     async updateUser(phone, data) {
         try {
             return await prisma.getClient().user.update({
