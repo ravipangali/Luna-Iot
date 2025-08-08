@@ -146,6 +146,55 @@ class FirebaseService {
             return { success: false, error: error.message };
         }
     }
+
+    async sendNotificationToMultipleUsers(fcmTokens, title, message, data = {}) {
+        try {
+            if (fcmTokens.length === 0) {
+                return { success: false, error: 'No FCM tokens provided' };
+            }
+    
+            const notification = {
+                notification: {
+                    title: title,
+                    body: message
+                },
+                data: {
+                    ...data,
+                    click_action: 'FLUTTER_NOTIFICATION_CLICK'
+                },
+                android: {
+                    priority: 'high',
+                    notification: {
+                        sound: 'default',
+                        channel_id: 'luna_iot_channel'
+                    }
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: 'default'
+                        }
+                    }
+                }
+            };
+    
+            // Send to multiple tokens using sendEachForMulticast
+            const response = await admin.messaging().sendEachForMulticast({
+                tokens: fcmTokens,
+                ...notification
+            });
+    
+            console.log('Successfully sent notifications:', response.successCount, 'successful,', response.failureCount, 'failed');
+            return { 
+                success: true, 
+                successCount: response.successCount, 
+                failureCount: response.failureCount 
+            };
+        } catch (error) {
+            console.error('Error sending notifications to multiple users:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
 module.exports = new FirebaseService();
