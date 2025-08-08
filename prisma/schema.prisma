@@ -115,6 +115,10 @@ model User {
 
   userDevices  UserDevice[]  @relation("UserDevices")
   userVehicles UserVehicle[] @relation("UserVehicles")
+  // Notification relations
+  sentNotifications Notification[] @relation("NotificationSender")
+  userNotifications UserNotification[] @relation("UserNotifications")
+
 
   @@map("users")
   @@index([phone, token, status])
@@ -292,4 +296,39 @@ model Otp {
 
   @@map("otps")
   @@index([phone])
+}
+
+// Notification models
+model Notification {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  message     String   @db.Text
+  type        String   @db.VarChar(50) // 'all', 'specific', 'role'
+  targetUsers String?  @db.Text // JSON array of user IDs or phone numbers
+  targetRoles String?  @db.Text // JSON array of role names
+  sentBy      User     @relation("NotificationSender", fields: [sentById], references: [id])
+  sentById    Int      @map("sent_by_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  userNotifications UserNotification[] @relation("NotificationUsers")
+  
+  @@map("notifications")
+  @@index([type, createdAt])
+}
+
+model UserNotification {
+  id             Int          @id @default(autoincrement())
+  user           User         @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int          @map("user_id")
+  notification   Notification @relation("NotificationUsers", fields: [notificationId], references: [id], onDelete: Cascade)
+  notificationId Int          @map("notification_id")
+  isRead         Boolean      @default(false) @map("is_read")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@unique([userId, notificationId])
+  @@map("user_notifications")
+  @@index([userId, isRead])
 }

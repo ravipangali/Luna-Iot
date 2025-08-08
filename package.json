@@ -25,6 +25,7 @@
     "dotenv": "^17.2.1",
     "elasticsearch": "^16.7.3",
     "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
     "gt06x22": "^1.0.10",
     "mysql2": "^3.14.2",
     "net": "^1.0.2",
