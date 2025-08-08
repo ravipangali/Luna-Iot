@@ -120,11 +120,6 @@ class LocationModel {
                         lte: endDate
                     }
                 },
-                select: {
-                    imei: true,
-                    ignition: true,
-                    createdAt: true
-                },
                 orderBy: {
                     createdAt: 'asc'
                 }
