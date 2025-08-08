@@ -82,6 +82,40 @@ class LocationController {
             return errorResponse(res, 'Failed to retrieve combined history data', 500);
         }
     }
+
+    // Generate comprehensive report
+    static async generateReport(req, res) {
+        try {
+            const { imei } = req.params;
+            const { startDate, endDate } = req.query;
+            
+            if (!startDate || !endDate) {
+                return errorResponse(res, 'Start date and end date are required', 400);
+            }
+
+            // Validate date range (max 3 months)
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            
+            if (start < threeMonthsAgo) {
+                return errorResponse(res, 'Date range cannot exceed 3 months', 400);
+            }
+            
+            const locationModel = new LocationModel();
+            const reportData = await locationModel.generateReportData(
+                imei, 
+                start, 
+                end
+            );
+            
+            return successResponse(res, reportData, 'Report generated successfully');
+        } catch (error) {
+            console.error('Error in generateReport:', error);
+            return errorResponse(res, 'Failed to generate report', 500);
+        }
+    }
 }
 
 module.exports = LocationController;

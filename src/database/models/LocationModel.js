@@ -146,6 +146,233 @@ class LocationModel {
         }
     }
 
+
+    // ------ Report --------
+    // Generate comprehensive report data
+    async generateReportData(imei, startDate, endDate) {
+        imei = imei.toString();
+        try {
+            // Get all location data for the date range
+            const locations = await prisma.getClient().location.findMany({
+                where: {
+                    imei,
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            });
+
+            // Get all status data for the date range
+            const statuses = await prisma.getClient().status.findMany({
+                where: {
+                    imei,
+                    createdAt: {
+                        gte: startDate,
+                        lte: endDate
+                    }
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            });
+
+            // Calculate statistics
+            const stats = this.calculateReportStats(locations, statuses);
+            
+            // Generate daily data for charts
+            const dailyData = this.generateDailyData(locations, startDate, endDate);
+
+            return {
+                stats,
+                dailyData,
+                rawData: {
+                    locations,
+                    statuses
+                }
+            };
+        } catch (error) {
+            console.error('ERROR GENERATING REPORT DATA: ', error);
+            throw error;
+        }
+    }
+
+    // Calculate report statistics
+    calculateReportStats(locations, statuses) {
+        if (locations.length === 0) {
+            return {
+                totalKm: 0,
+                totalTime: 0,
+                averageSpeed: 0,
+                maxSpeed: 0,
+                totalIdleTime: 0,
+                totalRunningTime: 0,
+                totalOverspeedTime: 0,
+                totalStopTime: 0
+            };
+        }
+
+        // Calculate total distance
+        let totalKm = 0;
+        for (let i = 1; i < locations.length; i++) {
+            const prev = locations[i - 1];
+            const curr = locations[i];
+            if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+                const distance = this.calculateDistance(
+                    prev.latitude, prev.longitude,
+                    curr.latitude, curr.longitude
+                );
+                totalKm += distance;
+            }
+        }
+
+        // Calculate time periods
+        const totalTime = locations.length > 1 
+            ? (new Date(locations[locations.length - 1].createdAt) - new Date(locations[0].createdAt)) / 1000 / 60 // in minutes
+            : 0;
+
+        // Calculate speeds
+        const speeds = locations.map(loc => loc.speed || 0).filter(speed => speed > 0);
+        const averageSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
+        const maxSpeed = speeds.length > 0 ? Math.max(...speeds) : 0;
+
+        // Calculate time periods based on status
+        let totalIdleTime = 0;
+        let totalRunningTime = 0;
+        let totalOverspeedTime = 0;
+        let totalStopTime = 0;
+
+        // Group statuses by day and calculate time periods
+        const statusByDay = {};
+        statuses.forEach(status => {
+            const day = new Date(status.createdAt).toDateString();
+            if (!statusByDay[day]) {
+                statusByDay[day] = [];
+            }
+            statusByDay[day].push(status);
+        });
+
+        // Calculate time periods for each day
+        Object.values(statusByDay).forEach(dayStatuses => {
+            dayStatuses.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            
+            for (let i = 0; i < dayStatuses.length - 1; i++) {
+                const current = dayStatuses[i];
+                const next = dayStatuses[i + 1];
+                const duration = (new Date(next.createdAt) - new Date(current.createdAt)) / 1000 / 60; // in minutes
+
+                if (current.ignition === false) {
+                    totalStopTime += duration;
+                } else if (current.ignition === true) {
+                    totalRunningTime += duration;
+                }
+            }
+        });
+
+        // Calculate idle time (when ignition is off but not moving)
+        totalIdleTime = totalStopTime;
+
+        // Calculate overspeed time (speed > 80 km/h)
+        const overspeedLocations = locations.filter(loc => (loc.speed || 0) > 80);
+        if (overspeedLocations.length > 1) {
+            for (let i = 1; i < overspeedLocations.length; i++) {
+                const duration = (new Date(overspeedLocations[i].createdAt) - new Date(overspeedLocations[i - 1].createdAt)) / 1000 / 60;
+                totalOverspeedTime += duration;
+            }
+        }
+
+        return {
+            totalKm: Math.round(totalKm * 100) / 100,
+            totalTime: Math.round(totalTime),
+            averageSpeed: Math.round(averageSpeed * 10) / 10,
+            maxSpeed: Math.round(maxSpeed),
+            totalIdleTime: Math.round(totalIdleTime),
+            totalRunningTime: Math.round(totalRunningTime),
+            totalOverspeedTime: Math.round(totalOverspeedTime),
+            totalStopTime: Math.round(totalStopTime)
+        };
+    }
+
+    // Generate daily data for charts
+    generateDailyData(locations, startDate, endDate) {
+        const dailyData = {};
+        const currentDate = new Date(startDate);
+        const end = new Date(endDate);
+
+        // Initialize daily data structure
+        while (currentDate <= end) {
+            const dateKey = currentDate.toISOString().split('T')[0];
+            dailyData[dateKey] = {
+                date: dateKey,
+                averageSpeed: 0,
+                maxSpeed: 0,
+                totalKm: 0,
+                locationCount: 0
+            };
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Group locations by day
+        const locationsByDay = {};
+        locations.forEach(location => {
+            const dateKey = new Date(location.createdAt).toISOString().split('T')[0];
+            if (!locationsByDay[dateKey]) {
+                locationsByDay[dateKey] = [];
+            }
+            locationsByDay[dateKey].push(location);
+        });
+
+        // Calculate daily statistics
+        Object.keys(locationsByDay).forEach(dateKey => {
+            const dayLocations = locationsByDay[dateKey];
+            if (dayLocations.length === 0) return;
+
+            // Calculate speeds for the day
+            const speeds = dayLocations.map(loc => loc.speed || 0).filter(speed => speed > 0);
+            const averageSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
+            const maxSpeed = speeds.length > 0 ? Math.max(...speeds) : 0;
+
+            // Calculate distance for the day
+            let totalKm = 0;
+            for (let i = 1; i < dayLocations.length; i++) {
+                const prev = dayLocations[i - 1];
+                const curr = dayLocations[i];
+                if (prev.latitude && prev.longitude && curr.latitude && curr.longitude) {
+                    const distance = this.calculateDistance(
+                        prev.latitude, prev.longitude,
+                        curr.latitude, curr.longitude
+                    );
+                    totalKm += distance;
+                }
+            }
+
+            dailyData[dateKey] = {
+                date: dateKey,
+                averageSpeed: Math.round(averageSpeed * 10) / 10,
+                maxSpeed: Math.round(maxSpeed),
+                totalKm: Math.round(totalKm * 100) / 100,
+                locationCount: dayLocations.length
+            };
+        });
+
+        return Object.values(dailyData);
+    }
+
+    // Calculate distance between two points using Haversine formula
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius of the Earth in kilometers
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
 }
 
 module.exports = LocationModel
