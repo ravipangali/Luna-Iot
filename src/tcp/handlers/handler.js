@@ -27,7 +27,10 @@ class DataHandler {
     identifyer(data) {
         for (const protocol of this.protocols) {
             if (data.startsWith(protocol.start[0]) || data.startsWith(protocol.start[1])) {
-                return protocol.name;
+                if (data.startsWith(protocol.start[1])) {
+                    data = '7878' + data.slice(4);
+                }
+                return {'protocol': protocol.name, 'data': data};
             }
         }
         return null;
