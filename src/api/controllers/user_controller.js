@@ -53,36 +53,36 @@ class UserController {
         }
     }
 
-    static async updateUser(req, res) {
-        try {
-            const { phone } = req.params;
-            const updateData = req.body;
-            
-            console.log('Updating user with phone:', phone);
-            console.log('Update data:', updateData);
-            
-            const userModel = new UserModel();
-            
-            // First check if user exists
-            const existingUser = await userModel.getUserByPhone(phone);
-            if (!existingUser) {
-                console.log('User not found for phone:', phone);
-                return errorResponse(res, 'User not found', 404);
-            }
-            
-            const user = await userModel.updateUser(phone, updateData);
-            return successResponse(res, user, 'User updated successfully');
-        } catch (error) {
-            console.error('Error in updateUser controller:', error);
-            
-            // Handle specific Prisma errors
-            if (error.code === 'P2025') {
-                return errorResponse(res, 'User not found for update', 404);
-            }
-            
-            return errorResponse(res, 'Failed to update user', 500);
+    
+static async updateUser(req, res) {
+    try {
+        const { phone } = req.params;
+        const updateData = req.body;
+        
+        console.log('Updating user with phone:', phone);
+        console.log('Update data:', updateData);
+        
+        // Fix: Use static methods directly, don't instantiate
+        // First check if user exists
+        const existingUser = await UserModel.getUserByPhone(phone);
+        if (!existingUser) {
+            console.log('User not found for phone:', phone);
+            return errorResponse(res, 'User not found', 404);
         }
+        
+        const user = await UserModel.updateUser(phone, updateData);
+        return successResponse(res, user, 'User updated successfully');
+    } catch (error) {
+        console.error('Error in updateUser controller:', error);
+        
+        // Handle specific Prisma errors
+        if (error.code === 'P2025') {
+            return errorResponse(res, 'User not found for update', 404);
+        }
+        
+        return errorResponse(res, 'Failed to update user', 500);
     }
+}
 
     static async deleteUser(req, res) {
         try {
@@ -103,16 +103,15 @@ class UserController {
                 return errorResponse(res, 'Phone number and FCM token are required', 400);
             }
             
-            const userModel = new UserModel();
-            
+            // Fix: Use static methods directly, don't instantiate
             // Check if user exists
-            const existingUser = await userModel.getUserByPhone(phone);
+            const existingUser = await UserModel.getUserByPhone(phone);
             if (!existingUser) {
                 return errorResponse(res, 'User not found', 404);
             }
             
             // Update FCM token
-            const user = await userModel.updateUser(phone, { fcmToken });
+            const user = await UserModel.updateUser(phone, { fcmToken });
             return successResponse(res, { fcmToken: user.fcmToken }, 'FCM token updated successfully');
         } catch (error) {
             console.error('Error in updateFcmToken:', error);
