@@ -3,6 +3,7 @@ const DeviceModel = require('../../database/models/DeviceModel');
 const StatusModel = require('../../database/models/StatusModel');
 const LocationModel = require('../../database/models/LocationModel');
 const socketService = require('../../socket/socket_service');
+const GT06NotificationService = require('../../utils/gt06_notification_service');
 
 class GT06Handler {
 
@@ -54,22 +55,63 @@ class GT06Handler {
                 charging: data.terminalInfo.charging,
                 relay: data.terminalInfo.relayState
             };
-            socketService.statusUpdateMessage(statusData.imei, statusData.battery, statusData.signal, statusData.ignition, statusData.charging, statusData.relay, new Date().toISOString());
-            await new StatusModel().createData(statusData);
-            socketService.deviceMonitoringMessage('status', data.imei, null, null);
+
+            // Check ignition change and send notification BEFORE saving
+            await GT06NotificationService.checkIgnitionChangeAndNotify(data.imei, statusData.ignition);
+
+
+            // Filter: Check if status data has changed from latest
+            const statusModel = new StatusModel();
+            const latestStatus = await statusModel.getLatest(data.imei);
+            
+            let shouldSave = true;
+            if (latestStatus) {
+                // Check if all status fields are the same
+                shouldSave = !(
+                    latestStatus.battery === statusData.battery &&
+                    latestStatus.signal === statusData.signal &&
+                    latestStatus.ignition === statusData.ignition &&
+                    latestStatus.charging === statusData.charging &&
+                    latestStatus.relay === statusData.relay
+                );
+            }
+
+            if (shouldSave) {
+                // Save to database and send socket message
+                await statusModel.createData(statusData);
+                socketService.statusUpdateMessage(statusData.imei, statusData.battery, statusData.signal, statusData.ignition, statusData.charging, statusData.relay, new Date().toISOString());
+                socketService.deviceMonitoringMessage('status', data.imei, null, null);
+            }
         } else if (data.event.string === 'location') {
             const locationData = {
                 imei: data.imei.toString(),
                 latitude: data.lat,
                 longitude: data.lon,
                 speed: data.speed,
-                satellite: data.satCnt,
+                satellite: data.satellite,
                 course: data.course,
                 realTimeGps: data.realTimeGps,
             };
-            socketService.locationUpdateMessage(locationData.imei, locationData.latitude, locationData.longitude, locationData.speed, locationData.course, locationData.satellite, locationData.realTimeGps, new Date().toISOString());
-            await new LocationModel().createData(locationData);
-            socketService.deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
+
+            // First Phase: Check speed limit and send overspeeding notification
+            await GT06NotificationService.checkSpeedLimitAndNotify(data.imei, locationData.speed);
+
+            // Second Phase: Check if vehicle is moving after ignition off
+            await GT06NotificationService.checkMovingAfterIgnitionOffAndNotify(data.imei);
+
+            // Filter: Check speed conditions
+            let shouldSave = false;
+            if (locationData.speed > 0 && locationData.speed >= 3) {
+                shouldSave = true;
+            }
+
+            if (shouldSave) {
+                // Save to database and send socket message
+                const locationModel = new LocationModel();
+                await locationModel.createData(locationData);
+                socketService.locationUpdateMessage(locationData.imei, locationData.latitude, locationData.longitude, locationData.speed, locationData.course, locationData.satellite, locationData.realTimeGps, new Date().toISOString());
+                socketService.deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
+            }
         } else if (data.event.string === 'login') {
             socketService.deviceMonitoringMessage('login', data.imei, null, null);
         } else if (data.event.string === 'alarm') {
