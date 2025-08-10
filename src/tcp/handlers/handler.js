@@ -34,7 +34,8 @@ class DataHandler {
                         data = '7878' + data.slice(4);
                     }
                 }
-                return {'protocol': protocol.name, 'data': data};
+                // Convert hex string back to Buffer before returning
+                return { 'protocol': protocol.name, 'data': Buffer.from(data, 'hex') };
             }
         }
         return null;
