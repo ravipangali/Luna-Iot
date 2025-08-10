@@ -36,6 +36,7 @@ class GT06Handler {
     }
 
     async handleData(data, socket) {
+        console.log('Handler: ',data);
         var device = new DeviceModel();
         device = await device.getDataByImei(data.imei);
 
