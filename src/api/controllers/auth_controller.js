@@ -98,48 +98,55 @@ class AuthController {
      static async verifyOTPAndRegister(req, res) {
         try {
             const { name, phone, password, otp } = req.body;
-
+    
             if (!name || !phone || !password || !otp) {
                 return errorResponse(res, 'All fields are required', 400);
             }
-
+    
             // Check if user already exists
             const existingUser = await prisma.getClient().user.findUnique({
-                where: { phone }
+                where: { phone: phone.trim() }
             });
-
+    
             if (existingUser) {
                 return errorResponse(res, 'User already exists', 400);
             }
-
-            // Verify OTP
+    
+            // Verify OTP with better error handling
             const otpModel = new OtpModel();
-            const otpRecord = await otpModel.verifyOTP(phone, otp);
-
+            let otpRecord;
+            
+            try {
+                otpRecord = await otpModel.verifyOTP(phone.trim(), otp);
+            } catch (otpError) {
+                console.error('OTP verification error:', otpError);
+                return errorResponse(res, 'OTP verification failed', 400);
+            }
+    
             if (!otpRecord) {
                 return errorResponse(res, 'Invalid or expired OTP', 400);
             }
-
+    
             // Hash password
             const hashedPassword = await bcrypt.hash(password, 12);
-
+    
             // Generate token
             const token = AuthController.generateToken();
-
+    
             // Get default role
             const defaultRole = await prisma.getClient().role.findFirst({
                 where: { name: 'Customer' }
             });
-
+    
             if (!defaultRole) {
                 return errorResponse(res, 'Default role not found', 500);
             }
-
+    
             // Create user
             const user = await prisma.getClient().user.create({
                 data: {
-                    name,
-                    phone,
+                    name: name.trim(),
+                    phone: phone.trim(),
                     password: hashedPassword,
                     token,
                     roleId: defaultRole.id
@@ -148,10 +155,10 @@ class AuthController {
                     role: true
                 }
             });
-
+    
             // Delete OTP after successful registration
-            await otpModel.deleteOTP(phone);
-
+            await otpModel.deleteOTP(phone.trim());
+    
             // Send response immediately after user creation
             return successResponse(res, 'User registered successfully', {
                 id: user.id,
@@ -162,7 +169,14 @@ class AuthController {
             });
         } catch (error) {
             console.error('Registration error:', error);
-            return errorResponse(res, error.message, 500);
+            // Provide more specific error messages
+            if (error.code === 'P2002') {
+                return errorResponse(res, 'User with this phone number already exists', 400);
+            } else if (error.code === 'P2025') {
+                return errorResponse(res, 'Database operation failed', 500);
+            } else {
+                return errorResponse(res, `Registration failed: ${error.message}`, 500);
+            }
         }
     }
 

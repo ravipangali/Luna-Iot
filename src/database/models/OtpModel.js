@@ -32,27 +32,31 @@ class OtpModel {
             console.log('OTP received:', otp);
             console.log('OTP type:', typeof otp);
             
+            // Ensure OTP is treated as string for comparison
+            const otpString = String(otp).trim();
+            
             const otpRecord = await prisma.getClient().otp.findFirst({
                 where: {
-                    phone,
-                    otp,
+                    phone: phone.trim(),
+                    otp: otpString,
                     expiresAt: {
                         gt: new Date()
                     }
                 }
             });
-
+    
             console.log('OTP record found:', otpRecord ? 'YES' : 'NO');
             if (otpRecord) {
                 console.log('Stored OTP:', otpRecord.otp);
                 console.log('Stored OTP type:', typeof otpRecord.otp);
                 console.log('Expires at:', otpRecord.expiresAt);
             }
-
+    
             return otpRecord;
         } catch (error) {
             console.error('OTP VERIFICATION ERROR', error);
-            throw error;
+            // Return more specific error information
+            throw new Error(`OTP verification failed: ${error.message}`);
         }
     }
 
