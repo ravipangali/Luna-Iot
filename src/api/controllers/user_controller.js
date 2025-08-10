@@ -94,6 +94,31 @@ class UserController {
             return errorResponse(res, 'Failed to delete user', 500);
         }
     }
+
+    static async updateFcmToken(req, res) {
+        try {
+            const { phone, fcmToken } = req.body;
+            
+            if (!phone || !fcmToken) {
+                return errorResponse(res, 'Phone number and FCM token are required', 400);
+            }
+            
+            const userModel = new UserModel();
+            
+            // Check if user exists
+            const existingUser = await userModel.getUserByPhone(phone);
+            if (!existingUser) {
+                return errorResponse(res, 'User not found', 404);
+            }
+            
+            // Update FCM token
+            const user = await userModel.updateUser(phone, { fcmToken });
+            return successResponse(res, { fcmToken: user.fcmToken }, 'FCM token updated successfully');
+        } catch (error) {
+            console.error('Error in updateFcmToken:', error);
+            return errorResponse(res, 'Failed to update FCM token', 500);
+        }
+    }
 }
 
 module.exports = UserController;

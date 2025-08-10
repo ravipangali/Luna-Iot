@@ -16,5 +16,6 @@ router.put('/user/:phone', AuthMiddleware.verifyToken, UserController.updateUser
 
 // Delete user
 router.delete('/user/:phone', AuthMiddleware.verifyToken, UserController.deleteUser);
+router.put('/fcm-token', AuthMiddleware.verifyToken, UserController.updateFcmToken);
 
 module.exports = router;
