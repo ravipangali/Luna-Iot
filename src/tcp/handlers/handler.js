@@ -18,7 +18,7 @@ class DataHandler {
         const hexData = data.toString('hex');
         const usedProtcol = this.identifyer(hexData)
 
-        if (usedProtcol.name === 'gt06' || usedProtcol.name === null) {
+        if (usedProtcol.protocol === 'gt06' || usedProtcol.protocol === null) {
             console.log('old ',this.data);
             console.log('new: ',usedProtcol.data);
             new gt06_handler.GT06Handler(usedProtcol.data, socket);
