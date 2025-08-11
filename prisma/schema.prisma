@@ -10,6 +10,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum GeofenceType {
+  Entry
+  Exit
+}
+
 enum NotificationType {
   all
   specific
@@ -123,6 +128,7 @@ model User {
   // Notification relations
   sentNotifications Notification[]     @relation("NotificationSender")
   userNotifications UserNotification[] @relation("UserNotifications")
+  geofences         GeofenceUser[]     @relation("GeofenceUsers")
 
   @@index([phone, token, status])
   @@map("users")
@@ -209,7 +215,8 @@ model Vehicle {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
 
-  userVehicles UserVehicle[] @relation("UserVehicles")
+  userVehicles UserVehicle[]     @relation("UserVehicles")
+  geofences    GeofenceVehicle[] @relation("GeofenceVehicles")
 
   @@map("vehicles")
 }
@@ -331,4 +338,49 @@ model UserNotification {
   @@unique([userId, notificationId])
   @@index([userId, isRead])
   @@map("user_notifications")
+}
+
+// Geofence model
+model Geofence {
+  id       Int          @id @default(autoincrement())
+  title    String       @db.VarChar(255)
+  type     GeofenceType
+  boundary Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  vehicles GeofenceVehicle[] @relation("GeofenceVehicles")
+  users    GeofenceUser[]    @relation("GeofenceUsers")
+
+  @@map("geofences")
+}
+
+// Geofence-Vehicle junction table
+model GeofenceVehicle {
+  id         Int      @id @default(autoincrement())
+  geofence   Geofence @relation("GeofenceVehicles", fields: [geofenceId], references: [id], onDelete: Cascade)
+  geofenceId Int      @map("geofence_id")
+  vehicle    Vehicle  @relation("GeofenceVehicles", fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId  Int      @map("vehicle_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([geofenceId, vehicleId])
+  @@map("geofence_vehicles")
+}
+
+// Geofence-User junction table
+model GeofenceUser {
+  id         Int      @id @default(autoincrement())
+  geofence   Geofence @relation("GeofenceUsers", fields: [geofenceId], references: [id], onDelete: Cascade)
+  geofenceId Int      @map("geofence_id")
+  user       User     @relation("GeofenceUsers", fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int      @map("user_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([geofenceId, userId])
+  @@map("geofence_users")
 }
