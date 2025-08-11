@@ -13,7 +13,7 @@ class LocationModel {
                     speed: data.speed,
                     course: data.course,
                     realTimeGps: data.realTimeGps,
-                    satellite: data.satellite,
+                    satellite: data.satellite || 0,
                     createdAt: new Date()
                 }
             });
