@@ -107,8 +107,8 @@ model User {
   name     String     @map("first_name") @db.VarChar(100)
   phone    String     @unique @db.VarChar(100)
   password String     @db.VarChar(255)
-  token    String?    @unique @db.VarChar(500)  
-  fcmToken String?    @map("fcm_token") @db.VarChar(500)  
+  token    String?    @unique @db.VarChar(500)
+  fcmToken String?    @map("fcm_token") @db.VarChar(500)
   status   UserStatus @default(ACTIVE)
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -118,15 +118,14 @@ model User {
   role   Role @relation("UserRole", fields: [roleId], references: [id])
   roleId Int  @map("role_id")
 
-  userDevices  UserDevice[]  @relation("UserDevices")
-  userVehicles UserVehicle[] @relation("UserVehicles")
+  userDevices       UserDevice[]       @relation("UserDevices")
+  userVehicles      UserVehicle[]      @relation("UserVehicles")
   // Notification relations
-  sentNotifications Notification[] @relation("NotificationSender")
+  sentNotifications Notification[]     @relation("NotificationSender")
   userNotifications UserNotification[] @relation("UserNotifications")
 
-
-  @@map("users")
   @@index([phone, token, status])
+  @@map("users")
 }
 
 // Role model
@@ -167,9 +166,9 @@ model RolePermission {
   roleId       Int        @map("role_id")
   permission   Permission @relation("RolePermissions", fields: [permissionId], references: [id], onDelete: Cascade)
   permissionId Int        @map("permission_id")
-  
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@unique([roleId, permissionId])
   @@map("role_permissions")
 }
@@ -187,10 +186,10 @@ model Device {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  locations Location[] @relation("DeviceLocations")
-  statuses  Status[]   @relation("DeviceStatuses")
-  vehicles  Vehicle[]  @relation("DeviceVehicles")
-  userDevices UserDevice[]  @relation("UserDevices")
+  locations   Location[]   @relation("DeviceLocations")
+  statuses    Status[]     @relation("DeviceStatuses")
+  vehicles    Vehicle[]    @relation("DeviceVehicles")
+  userDevices UserDevice[] @relation("UserDevices")
 
   @@map("devices")
 }
@@ -249,48 +248,46 @@ model Status {
   @@map("statuses")
 }
 
-
 // User-Device junction table
 model UserDevice {
-  id       Int      @id @default(autoincrement())
-  user     User     @relation("UserDevices", fields: [userId], references: [id], onDelete: Cascade)
-  userId   Int      @map("user_id")
-  device   Device   @relation("UserDevices", fields: [deviceId], references: [id], onDelete: Cascade)
-  deviceId Int      @map("device_id")
-  
+  id       Int    @id @default(autoincrement())
+  user     User   @relation("UserDevices", fields: [userId], references: [id], onDelete: Cascade)
+  userId   Int    @map("user_id")
+  device   Device @relation("UserDevices", fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId Int    @map("device_id")
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@unique([userId, deviceId])
   @@map("user_devices")
 }
 
 // User-Vehicle junction table
 model UserVehicle {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation("UserVehicles", fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int      @map("user_id")
-  vehicle   Vehicle  @relation("UserVehicles", fields: [vehicleId], references: [id], onDelete: Cascade)
-  vehicleId Int      @map("vehicle_id")
-  isMain    Boolean  @default(false) @map("is_main")
-  
-  
+  id        Int     @id @default(autoincrement())
+  user      User    @relation("UserVehicles", fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int     @map("user_id")
+  vehicle   Vehicle @relation("UserVehicles", fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId Int     @map("vehicle_id")
+  isMain    Boolean @default(false) @map("is_main")
+
   // Vehicle-specific permissions
-  allAccess     Boolean @default(false) @map("all_access")
-  liveTracking  Boolean @default(false) @map("live_tracking")
-  history       Boolean @default(false)
-  report        Boolean @default(false)
+  allAccess      Boolean @default(false) @map("all_access")
+  liveTracking   Boolean @default(false) @map("live_tracking")
+  history        Boolean @default(false)
+  report         Boolean @default(false)
   vehicleProfile Boolean @default(false) @map("vehicle_profile")
-  events        Boolean @default(false)
-  geofence      Boolean @default(false)
-  edit          Boolean @default(false)
-  shareTracking Boolean @default(false) @map("share_tracking")
-  
+  events         Boolean @default(false)
+  geofence       Boolean @default(false)
+  edit           Boolean @default(false)
+  shareTracking  Boolean @default(false) @map("share_tracking")
+  notification   Boolean @default(true) // Add this line - default to true for existing users
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@unique([userId, vehicleId])
   @@map("user_vehicles")
 }
-
 
 model Otp {
   id        Int      @id @default(autoincrement())
@@ -299,26 +296,26 @@ model Otp {
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
-  @@map("otps")
   @@index([phone])
+  @@map("otps")
 }
 
 // Notification models
 model Notification {
-  id          Int      @id @default(autoincrement())
-  title       String   @db.VarChar(255)
-  message     String   @db.Text
-  type        NotificationType
-  sentBy      User     @relation("NotificationSender", fields: [sentById], references: [id])
-  sentById    Int      @map("sent_by_id")
-  
+  id       Int              @id @default(autoincrement())
+  title    String           @db.VarChar(255)
+  message  String           @db.Text
+  type     NotificationType
+  sentBy   User             @relation("NotificationSender", fields: [sentById], references: [id])
+  sentById Int              @map("sent_by_id")
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   // Relations
   userNotifications UserNotification[] @relation("NotificationUsers")
-  
-  @@map("notifications")
+
   @@index([type, createdAt])
+  @@map("notifications")
 }
 
 model UserNotification {
@@ -328,10 +325,10 @@ model UserNotification {
   notification   Notification @relation("NotificationUsers", fields: [notificationId], references: [id], onDelete: Cascade)
   notificationId Int          @map("notification_id")
   isRead         Boolean      @default(false) @map("is_read")
-  
+
   createdAt DateTime @default(now()) @map("created_at")
-  
+
   @@unique([userId, notificationId])
-  @@map("user_notifications")
   @@index([userId, isRead])
+  @@map("user_notifications")
 }

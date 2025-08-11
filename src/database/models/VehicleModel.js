@@ -58,6 +58,7 @@ class VehicleModel {
                     geofence: true,
                     edit: true,
                     shareTracking: true,
+                    notification:true,
                     createdAt: new Date()
                 }
             });
@@ -416,7 +417,8 @@ class VehicleModel {
                     events: permissions.events || false,
                     geofence: permissions.geofence || false,
                     edit: permissions.edit || false,
-                    shareTracking: permissions.shareTracking || false
+                    shareTracking: permissions.shareTracking || false,
+                    notification: permissions.notification || false
                     // Remove assignedBy since it's not in the schema
                 },
                 include: {
@@ -574,7 +576,8 @@ class VehicleModel {
                     events: permissions.events || false,
                     geofence: permissions.geofence || false,
                     edit: permissions.edit || false,
-                    shareTracking: permissions.shareTracking || false
+                    shareTracking: permissions.shareTracking || false,
+                    notification: permissions.notification || false
                     // Remove assignedBy since it's not in the schema
                 },
                 include: {

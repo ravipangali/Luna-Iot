@@ -21,7 +21,7 @@ class GT06NotificationService {
             const userVehicles = await prisma.getClient().userVehicle.findMany({
                 where: {
                     vehicleId: vehicle.id,
-                    events: true // Assuming 'events' permission includes notifications
+                    notification: true // Assuming 'events' permission includes notifications
                 },
                 include: {
                     user: {
