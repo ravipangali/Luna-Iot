@@ -1,6 +1,7 @@
 const UserModel = require('../../database/models/UserModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 const bcrypt = require('bcryptjs');
+const ResponseHandler = require('../utils/response_handler');
 
 class UserController {
     static async getAllUsers(req, res) {
@@ -19,7 +20,6 @@ class UserController {
             console.log('🔍 getUserByPhone called with phone:', phone);
             console.log('🔍 Request user:', req.user);
             
-            // ✅ CORRECT: Call the static method directly
             const user = await UserModel.getUserByPhone(phone);
             
             if (!user) {
