@@ -11,12 +11,12 @@ class GeofenceModel {
                     title: data.title,
                     type: data.type,
                     boundary: data.boundary, // Prisma will automatically convert to JSON
-                    createdBy: data.createdBy,
+                    // Remove createdBy field - it doesn't exist in schema
                     createdAt: new Date(),
                     updatedAt: new Date()
                 }
             });
-
+    
             console.log('Geofence created successfully:', geofence);
             return geofence;
         } catch (error) {
@@ -25,47 +25,50 @@ class GeofenceModel {
         }
     }
 
-    async assignGeofenceToVehicles(geofenceId, vehicleIds) {
-        try {
-            console.log(`Assigning geofence ${geofenceId} to vehicles:`, vehicleIds);
-            
-            const assignments = vehicleIds.map(vehicleId => ({
-                geofenceId: geofenceId,
-                vehicleId: vehicleId
-            }));
+// Fix table naming consistency - use the correct Prisma model names
+async assignGeofenceToVehicles(geofenceId, vehicleIds) {
+    try {
+        console.log(`Assigning geofence ${geofenceId} to vehicles:`, vehicleIds);
+        
+        const assignments = vehicleIds.map(vehicleId => ({
+            geofenceId: geofenceId,
+            vehicleId: vehicleId
+        }));
 
-            await prisma.getClient().geofence_vehicles.createMany({
-                data: assignments,
-                skipDuplicates: true
-            });
+        // Use correct Prisma model name (camelCase)
+        await prisma.getClient().geofenceVehicle.createMany({
+            data: assignments,
+            skipDuplicates: true
+        });
 
-            console.log('Vehicle assignments created successfully');
-        } catch (error) {
-            console.error('Error assigning vehicles to geofence:', error);
-            throw error;
-        }
+        console.log('Vehicle assignments created successfully');
+    } catch (error) {
+        console.error('Error assigning vehicles to geofence:', error);
+        throw error;
     }
+}
 
-    async assignGeofenceToUsers(geofenceId, userIds) {
-        try {
-            console.log(`Assigning geofence ${geofenceId} to users:`, userIds);
-            
-            const assignments = userIds.map(userId => ({
-                geofenceId: geofenceId,
-                userId: userId
-            }));
+async assignGeofenceToUsers(geofenceId, userIds) {
+    try {
+        console.log(`Assigning geofence ${geofenceId} to users:`, userIds);
+        
+        const assignments = userIds.map(userId => ({
+            geofenceId: geofenceId,
+            userId: userId
+        }));
 
-            await prisma.getClient().geofence_users.createMany({
-                data: assignments,
-                skipDuplicates: true
-            });
+        // Use correct Prisma model name (camelCase)
+        await prisma.getClient().geofenceUser.createMany({
+            data: assignments,
+            skipDuplicates: true
+        });
 
-            console.log('User assignments created successfully');
-        } catch (error) {
-            console.error('Error assigning users to geofence:', error);
-            throw error;
-        }
+        console.log('User assignments created successfully');
+    } catch (error) {
+        console.error('Error assigning users to geofence:', error);
+        throw error;
     }
+}
 
     // Get all geofences
     async getAllGeofences() {
