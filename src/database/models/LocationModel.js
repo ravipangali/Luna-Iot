@@ -427,8 +427,7 @@ async updateVehicleOdometer(imei, newLat, newLon) {
         await prisma.getClient().vehicle.update({
             where: { imei: imei.toString() },
             data: {
-                odometer: Math.round(newOdometer * 100) / 100, // Round to 2 decimal places
-                odometerUpdatedAt: new Date()
+                odometer: Math.round(newOdometer * 100) / 100,
             }
         });
 
