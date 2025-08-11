@@ -82,31 +82,41 @@ class GT06NotificationService {
     // Check if ignition status changed and send notification
     static async checkIgnitionChangeAndNotify(imei, newIgnitionStatus) {
         try {
+            console.log(`=== IGNITION CHECK DEBUG ===`);
+            console.log(`IMEI: ${imei}, New Ignition: ${newIgnitionStatus}`);
+            
             // Get latest status to compare ignition
             const latestStatus = await prisma.getClient().status.findFirst({
                 where: { imei: imei.toString() },
                 orderBy: { createdAt: 'desc' },
                 select: { ignition: true }
             });
-
+    
+            console.log(`Latest status ignition: ${latestStatus?.ignition}`);
+            console.log(`Should send notification: ${!latestStatus || latestStatus.ignition !== newIgnitionStatus}`);
+    
             // If no previous status or ignition changed, send notification
             if (!latestStatus || latestStatus.ignition !== newIgnitionStatus) {
+                console.log(`Sending ignition notification...`);
                 const vehicle = await prisma.getClient().vehicle.findUnique({
                     where: { imei: imei.toString() },
                     select: { vehicleNo: true }
                 });
-
+    
                 if (vehicle) {
                     const ignitionStatus = newIgnitionStatus ? 'On' : 'Off';
                     const title = 'Vehicle Status Update';
                     const message = `${vehicle.vehicleNo}: Ignition is ${ignitionStatus}`;
-
+    
                     await this.sendVehicleNotification(imei, title, message, {
                         type: 'ignition_change',
                         ignitionStatus: newIgnitionStatus
                     });
                 }
+            } else {
+                console.log(`Ignition status unchanged, skipping notification`);
             }
+            console.log(`=== END IGNITION CHECK ===`);
         } catch (error) {
             console.error('Error checking ignition change:', error);
         }
@@ -115,25 +125,38 @@ class GT06NotificationService {
     // Check speed limit and send overspeeding notification
     static async checkSpeedLimitAndNotify(imei, currentSpeed) {
         try {
+            console.log(`=== SPEED CHECK DEBUG ===`);
+            console.log(`IMEI: ${imei}, Current Speed: ${currentSpeed}`);
+            
             // Get vehicle speed limit
             const vehicle = await prisma.getClient().vehicle.findUnique({
                 where: { imei: imei.toString() },
                 select: { vehicleNo: true, speedLimit: true }
             });
-
-            if (!vehicle) return;
-
+    
+            if (!vehicle) {
+                console.log('Vehicle not found');
+                return;
+            }
+    
+            console.log(`Vehicle: ${vehicle.vehicleNo}, Speed Limit: ${vehicle.speedLimit}`);
+            console.log(`Speed exceeds limit: ${currentSpeed > vehicle.speedLimit}`);
+    
             // Check if speed exceeds limit
             if (currentSpeed > vehicle.speedLimit) {
+                console.log(`Sending speed alert notification...`);
                 const title = 'Speed Alert';
                 const message = `${vehicle.vehicleNo}: Vehicle is Overspeeding at ${currentSpeed} km/h`;
-
+    
                 await this.sendVehicleNotification(imei, title, message, {
                     type: 'overspeeding',
                     currentSpeed: currentSpeed,
                     speedLimit: vehicle.speedLimit
                 });
+            } else {
+                console.log(`Speed within limit, no notification needed`);
             }
+            console.log(`=== END SPEED CHECK ===`);
         } catch (error) {
             console.error('Error checking speed limit:', error);
         }
@@ -183,6 +206,34 @@ class GT06NotificationService {
             }
         } catch (error) {
             console.error('Error checking moving after ignition off:', error);
+        }
+    }
+
+    static async forceTestNotification(imei) {
+        try {
+            console.log('=== FORCE TEST NOTIFICATION ===');
+            
+            const vehicle = await prisma.getClient().vehicle.findUnique({
+                where: { imei: imei.toString() },
+                select: { id: true, vehicleNo: true }
+            });
+    
+            if (!vehicle) {
+                console.log('Vehicle not found');
+                return;
+            }
+    
+            console.log(`Sending test notification for vehicle: ${vehicle.vehicleNo}`);
+            
+            await this.sendVehicleNotification(imei, 'TEST NOTIFICATION', 'This is a forced test notification', {
+                type: 'test',
+                timestamp: new Date().toISOString()
+            });
+            
+            console.log('Test notification sent successfully');
+            
+        } catch (error) {
+            console.error('Force test notification error:', error);
         }
     }
 }
