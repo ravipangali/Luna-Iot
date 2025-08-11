@@ -63,7 +63,7 @@ class GT06Handler {
             // Filter: Check if status data has changed from latest
             const statusModel = new StatusModel();
             const latestStatus = await statusModel.getLatest(data.imei);
-            
+
             let shouldSave = true;
             if (latestStatus) {
                 // Check if all status fields are the same
@@ -83,6 +83,16 @@ class GT06Handler {
                 socketService.deviceMonitoringMessage('status', data.imei, null, null);
             }
         } else if (data.event.string === 'location') {
+            // Extract fix time from device data
+            let createdAt = new Date();
+
+            if (data.fixTime) {
+                // Use fixTime if available (ISO string format)
+                createdAt = new Date(data.fixTime);
+            } else if (data.fixTimestamp) {
+                // Use fixTimestamp if available (Unix timestamp in seconds)
+                createdAt = new Date(data.fixTimestamp * 1000);
+            }
             const locationData = {
                 imei: data.imei.toString(),
                 latitude: data.lat,
@@ -91,6 +101,7 @@ class GT06Handler {
                 satellite: data.satellite,
                 course: data.course,
                 realTimeGps: data.realTimeGps,
+                createdAt: createdAt
             };
 
             // First Phase: Check speed limit and send overspeeding notification
