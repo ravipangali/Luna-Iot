@@ -43,7 +43,7 @@ class GT06NotificationService {
             console.log('User details:', usersWithFcmTokens.map(u => ({ 
                 id: u.id, 
                 name: u.name, 
-                fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + '...' : 'null' 
+                fcmToken: u.fcmToken
             })));
             
             if (usersWithFcmTokens.length === 0) {
@@ -54,7 +54,7 @@ class GT06NotificationService {
             // Extract FCM tokens
             const fcmTokens = usersWithFcmTokens.map(user => user.fcmToken);
             console.log(`FCM Tokens to send to: ${fcmTokens.length}`);
-            console.log('First token sample:', fcmTokens[0] ? fcmTokens[0].substring(0, 50) + '...' : 'null');
+            console.log('First token sample:', fcmTokens[0]);
             
             // Send notification to all users
             const result = await firebaseService.sendNotificationToMultipleUsers(
