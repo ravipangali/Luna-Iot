@@ -124,7 +124,7 @@ class SocketService {
                 course: course,
                 satellite: satellite,
                 realTimeGps: realTimeGps,
-                createdAt: created_at,
+                createdAt: created_at || new Date().toISOString(),
             }
             this._broadcastToAllWorkers('location_update', data);
         }
