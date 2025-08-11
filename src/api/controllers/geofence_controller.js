@@ -56,34 +56,42 @@ class GeofenceController {
             if (vehicleIds && Array.isArray(vehicleIds) && vehicleIds.length > 0) {
                 try {
                     // Convert IMEI numbers to actual vehicle IDs
-                    const vehicleModel = require('../../database/models/VehicleModel');
+                    const VehicleModel = require('../../database/models/VehicleModel');
+                    const vehicleModel = new VehicleModel();
                     const actualVehicleIds = [];
+                    
+                    console.log('Processing vehicle IDs:', vehicleIds);
                     
                     for (const imei of vehicleIds) {
                         // Check if this is an IMEI (15 digits) or actual vehicle ID
                         if (imei.toString().length === 15) {
                             // This is an IMEI, find the corresponding vehicle ID
+                            console.log(`Looking up vehicle for IMEI: ${imei}`);
                             const vehicle = await vehicleModel.getDataByImei(imei);
                             if (vehicle) {
                                 actualVehicleIds.push(vehicle.id);
+                                console.log(`✓ Found vehicle ID ${vehicle.id} for IMEI ${imei}`);
                             } else {
-                                console.warn(`Vehicle with IMEI ${imei} not found`);
+                                console.warn(`✗ Vehicle with IMEI ${imei} not found`);
                             }
                         } else {
                             // This is already a vehicle ID
                             actualVehicleIds.push(parseInt(imei));
+                            console.log(`✓ Using vehicle ID directly: ${imei}`);
                         }
                     }
                     
                     if (actualVehicleIds.length > 0) {
                         console.log('Assigning geofence to vehicles with IDs:', actualVehicleIds);
                         await geofenceModel.assignGeofenceToVehicles(geofence.id, actualVehicleIds);
+                        console.log('✓ Vehicle assignment completed successfully');
+                    } else {
+                        console.log('No valid vehicle IDs found for assignment');
                     }
                 } catch (error) {
                     console.error('Error converting IMEI to vehicle IDs:', error);
                     // Continue without vehicle assignment rather than failing the entire request
-                }
-            }
+                }}
 
             // Assign to users if provided
             if (userIds && Array.isArray(userIds) && userIds.length > 0) {
