@@ -7,7 +7,7 @@ const AuthMiddleware = require('../middleware/auth_middleware');
 router.get('/users', AuthMiddleware.verifyToken, UserController.getAllUsers);
 
 // Get user by ID
-router.get('/user/:phone', AuthMiddleware.verifyToken, UserController.getUserByPhone);
+router.get('/user/:phone', UserController.getUserByPhone);
 
 // Create user (admin)
 router.post('/user/create', AuthMiddleware.verifyToken, UserController.createUser);
