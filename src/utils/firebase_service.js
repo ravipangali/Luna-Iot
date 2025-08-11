@@ -99,6 +99,22 @@ class FirebaseService {
             });
 
             console.log('Successfully sent notifications:', response.successCount, 'successful,', response.failureCount, 'failed');
+
+            // Add this detailed error logging
+            if (response.failureCount > 0) {
+                console.log('=== FCM FAILURE DETAILS ===');
+                response.responses.forEach((resp, idx) => {
+                    if (!resp.success) {
+                        console.log(`Token ${idx + 1} failed:`, {
+                            token: fcmTokens[idx].substring(0, 30) + '...',
+                            error: resp.error?.message || resp.error?.code || 'Unknown error',
+                            errorCode: resp.error?.code
+                        });
+                    }
+                });
+                console.log('=== END FCM FAILURE DETAILS ===');
+            }
+            
             return { 
                 success: true, 
                 successCount: response.successCount, 
