@@ -3,43 +3,79 @@ const { successResponse, errorResponse } = require('../utils/response_handler');
 
 class GeofenceController {
     // Create new geofence
+    // Create new geofence
     static async createGeofence(req, res) {
         try {
             const user = req.user;
             const { title, type, boundary, vehicleIds, userIds } = req.body;
 
-            // Validate required fields
-            if (!title || !type || !boundary) {
-                return errorResponse(res, 'Title, type, and boundary are required', 400);
-            }
-
-            // Validate type
-            if (!['Entry', 'Exit'].includes(type)) {
-                return errorResponse(res, 'Type must be Entry or Exit', 400);
-            }
-
-            // Validate boundary format (should be array of lat-long strings)
-            if (!Array.isArray(boundary) || boundary.length < 3) {
-                return errorResponse(res, 'Boundary must be an array of at least 3 lat-long coordinates', 400);
-            }
-
-            const geofenceModel = new GeofenceModel();
-            
-            // Create geofence
-            const geofence = await geofenceModel.createGeofence({
+            console.log('Creating geofence with data:', {
                 title,
                 type,
                 boundary,
+                vehicleIds,
+                userIds
             });
 
+            // Validate required fields
+            if (!title || !type || !boundary || !Array.isArray(boundary)) {
+                return errorResponse(res, 'Title, type, and boundary are required', 400);
+            }
+
+            // Validate boundary format
+            if (boundary.length < 3) {
+                return errorResponse(res, 'Boundary must have at least 3 points', 400);
+            }
+
+            // Validate boundary data structure
+            for (const point of boundary) {
+                if (typeof point !== 'string' || !point.includes(',')) {
+                    return errorResponse(res, 'Invalid boundary point format. Expected "lat,lng"', 400);
+                }
+                
+                const [lat, lng] = point.split(',');
+                if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
+                    return errorResponse(res, 'Invalid coordinates in boundary', 400);
+                }
+            }
+
+            // Create geofence data
+            const geofenceData = {
+                title,
+                type,
+                boundary: boundary, // Send as array of strings, Prisma will handle JSON conversion
+                createdBy: user.id
+            };
+
+            const geofenceModel = new GeofenceModel();
+            const geofence = await geofenceModel.createGeofence(geofenceData);
+
+            console.log('Geofence created with ID:', geofence.id);
+
             // Assign to vehicles if provided
-            if (vehicleIds && vehicleIds.length > 0) {
-                await geofenceModel.assignGeofenceToVehicles(geofence.id, vehicleIds);
+            if (vehicleIds && Array.isArray(vehicleIds) && vehicleIds.length > 0) {
+                // Filter out invalid vehicle IDs
+                const validVehicleIds = vehicleIds.filter(id => 
+                    Number.isInteger(id) && id > 0
+                );
+                
+                if (validVehicleIds.length > 0) {
+                    console.log('Assigning geofence to vehicles:', validVehicleIds);
+                    await geofenceModel.assignGeofenceToVehicles(geofence.id, validVehicleIds);
+                }
             }
 
             // Assign to users if provided
-            if (userIds && userIds.length > 0) {
-                await geofenceModel.assignGeofenceToUsers(geofence.id, userIds);
+            if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+                // Filter out invalid user IDs
+                const validUserIds = userIds.filter(id => 
+                    Number.isInteger(id) && id > 0
+                );
+                
+                if (validUserIds.length > 0) {
+                    console.log('Assigning geofence to users:', validUserIds);
+                    await geofenceModel.assignGeofenceToUsers(geofence.id, validUserIds);
+                }
             }
 
             // Get updated geofence with assignments
@@ -48,9 +84,11 @@ class GeofenceController {
             return successResponse(res, updatedGeofence, 'Geofence created successfully', 201);
         } catch (error) {
             console.error('Error in createGeofence:', error);
-            return errorResponse(res, 'Failed to create geofence', 500);
+            console.error('Error stack:', error.stack);
+            return errorResponse(res, `Failed to create geofence: ${error.message}`, 500);
         }
     }
+
 
     // Get all geofences
     static async getAllGeofences(req, res) {
