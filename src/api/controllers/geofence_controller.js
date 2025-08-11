@@ -32,7 +32,7 @@ class GeofenceController {
                 if (typeof point !== 'string' || !point.includes(',')) {
                     return errorResponse(res, 'Invalid boundary point format. Expected "lat,lng"', 400);
                 }
-                
+
                 const [lat, lng] = point.split(',');
                 if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
                     return errorResponse(res, 'Invalid coordinates in boundary', 400);
@@ -44,13 +44,14 @@ class GeofenceController {
                 title,
                 type,
                 boundary: boundary, // Send as array of strings, Prisma will handle JSON conversion
-               
+
             };
 
             const geofenceModel = new GeofenceModel();
             const geofence = await geofenceModel.createGeofence(geofenceData);
 
             console.log('Geofence created with ID:', geofence.id);
+
 
             // Assign to vehicles if provided
             if (vehicleIds && Array.isArray(vehicleIds) && vehicleIds.length > 0) {
@@ -59,9 +60,9 @@ class GeofenceController {
                     const VehicleModel = require('../../database/models/VehicleModel');
                     const vehicleModel = new VehicleModel();
                     const actualVehicleIds = [];
-                    
+
                     console.log('Processing vehicle IDs:', vehicleIds);
-                    
+
                     for (const imei of vehicleIds) {
                         // Check if this is an IMEI (15 digits) or actual vehicle ID
                         if (imei.toString().length === 15) {
@@ -80,7 +81,7 @@ class GeofenceController {
                             console.log(`✓ Using vehicle ID directly: ${imei}`);
                         }
                     }
-                    
+
                     if (actualVehicleIds.length > 0) {
                         console.log('Assigning geofence to vehicles with IDs:', actualVehicleIds);
                         await geofenceModel.assignGeofenceToVehicles(geofence.id, actualVehicleIds);
@@ -91,20 +92,33 @@ class GeofenceController {
                 } catch (error) {
                     console.error('Error converting IMEI to vehicle IDs:', error);
                     // Continue without vehicle assignment rather than failing the entire request
-                }}
-
-            // Assign to users if provided
-            if (userIds && Array.isArray(userIds) && userIds.length > 0) {
-                // Filter out invalid user IDs
-                const validUserIds = userIds.filter(id => 
-                    Number.isInteger(id) && id > 0
-                );
-                
-                if (validUserIds.length > 0) {
-                    console.log('Assigning geofence to users:', validUserIds);
-                    await geofenceModel.assignGeofenceToUsers(geofence.id, validUserIds);
                 }
             }
+
+            // Always assign the current user to the geofence (creator)
+            console.log('Assigning geofence creator (user ID):', user.id);
+            await geofenceModel.assignGeofenceToUsers(geofence.id, [user.id]);
+            console.log('✓ Geofence creator assigned successfully');
+
+            // Assign to additional users if provided
+            if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+                try {
+                    // Filter out invalid user IDs and the current user (to avoid duplicates)
+                    const validUserIds = userIds.filter(id =>
+                        Number.isInteger(id) && id > 0 && id !== user.id
+                    );
+
+                    if (validUserIds.length > 0) {
+                        console.log('Assigning geofence to additional users:', validUserIds);
+                        await geofenceModel.assignGeofenceToUsers(geofence.id, validUserIds);
+                        console.log('✓ Additional users assigned successfully');
+                    }
+                } catch (error) {
+                    console.error('Error assigning additional users:', error);
+                    // Continue without additional user assignment rather than failing the entire request
+                }
+            }
+
 
             // Get updated geofence with assignments
             const updatedGeofence = await geofenceModel.getGeofenceById(geofence.id);
@@ -123,26 +137,26 @@ class GeofenceController {
         try {
             const user = req.user;
             const geofenceModel = new GeofenceModel();
-            
+
             // Super Admin: all access
             if (user.role.name === 'Super Admin') {
                 const geofences = await geofenceModel.getAllGeofences();
                 return successResponse(res, geofences, 'Geofences retrieved successfully');
-            } 
+            }
             // Dealer: only view assigned geofences
             else if (user.role.name === 'Dealer') {
                 const geofences = await geofenceModel.getAllGeofences();
                 // Filter to only show geofences assigned to this user
-                const userGeofences = geofences.filter(geofence => 
+                const userGeofences = geofences.filter(geofence =>
                     geofence.users.some(u => u.userId === user.id)
                 );
                 return successResponse(res, userGeofences, 'Dealer geofences retrieved successfully');
-            } 
+            }
             // Customer: only view assigned geofences
             else {
                 const geofences = await geofenceModel.getAllGeofences();
                 // Filter to only show geofences assigned to this user
-                const userGeofences = geofences.filter(geofence => 
+                const userGeofences = geofences.filter(geofence =>
                     geofence.users.some(u => u.userId === user.id)
                 );
                 return successResponse(res, userGeofences, 'Customer geofences retrieved successfully');
@@ -159,9 +173,9 @@ class GeofenceController {
             const { id } = req.params;
             const user = req.user;
             const geofenceModel = new GeofenceModel();
-            
+
             const geofence = await geofenceModel.getGeofenceById(id);
-            
+
             if (!geofence) {
                 return errorResponse(res, 'Geofence not found', 404);
             }
@@ -174,7 +188,7 @@ class GeofenceController {
                     return errorResponse(res, 'Access denied to this geofence', 403);
                 }
             }
-            
+
             return successResponse(res, geofence, 'Geofence retrieved successfully');
         } catch (error) {
             console.error('Error in getGeofenceById:', error);
@@ -188,30 +202,30 @@ class GeofenceController {
             const { imei } = req.params;
             const user = req.user;
             const geofenceModel = new GeofenceModel();
-            
+
             let geofences;
-            
+
             // Super Admin: can access any geofence
             if (user.role.name === 'Super Admin') {
                 geofences = await geofenceModel.getGeofencesByImei(imei);
-            } 
+            }
             // Dealer: can only access assigned geofences
             else if (user.role.name === 'Dealer') {
                 geofences = await geofenceModel.getGeofencesByImei(imei);
                 // Filter to only show geofences assigned to this user
-                geofences = geofences.filter(geofence => 
+                geofences = geofences.filter(geofence =>
                     geofence.users.some(u => u.userId === user.id)
                 );
-            } 
+            }
             // Customer: can only access assigned geofences
             else {
                 geofences = await geofenceModel.getGeofencesByImei(imei);
                 // Filter to only show geofences assigned to this user
-                geofences = geofences.filter(geofence => 
+                geofences = geofences.filter(geofence =>
                     geofence.users.some(u => u.userId === user.id)
                 );
             }
-            
+
             return successResponse(res, geofences, 'Geofences retrieved successfully');
         } catch (error) {
             console.error('Error in getGeofencesByImei:', error);
@@ -225,9 +239,9 @@ class GeofenceController {
             const { id } = req.params;
             const user = req.user;
             const updateData = req.body;
-            
+
             const geofenceModel = new GeofenceModel();
-            
+
             // Check if geofence exists
             const existingGeofence = await geofenceModel.getGeofenceById(id);
             if (!existingGeofence) {
@@ -245,7 +259,7 @@ class GeofenceController {
 
             // Update geofence
             const updatedGeofence = await geofenceModel.updateGeofence(id, updateData);
-            
+
             if (!updatedGeofence) {
                 return errorResponse(res, 'Geofence not found', 404);
             }
@@ -275,9 +289,9 @@ class GeofenceController {
         try {
             const { id } = req.params;
             const user = req.user;
-            
+
             const geofenceModel = new GeofenceModel();
-            
+
             // Check if geofence exists
             const existingGeofence = await geofenceModel.getGeofenceById(id);
             if (!existingGeofence) {
@@ -294,11 +308,11 @@ class GeofenceController {
             }
 
             const result = await geofenceModel.deleteGeofence(id);
-            
+
             if (!result) {
                 return errorResponse(res, 'Geofence not found', 404);
             }
-            
+
             return successResponse(res, null, 'Geofence deleted successfully');
         } catch (error) {
             console.error('Error in deleteGeofence:', error);
