@@ -17,6 +17,10 @@ class LocationModel {
                     createdAt: data.createdAt || new Date()
                 }
             });
+
+            // Then update odometer
+            await this.updateVehicleOdometer(data.imei, data.latitude, data.longitude);
+
             return location;
         } catch (error) {
             console.error('LOCATION CREATION ERROR', error);
@@ -29,12 +33,12 @@ class LocationModel {
         imei = imei.toString();
         try {
             const location = await prisma.getClient().location.findFirst({
-                where: {imei},
-                orderBy: {createdAt: 'desc'}
+                where: { imei },
+                orderBy: { createdAt: 'desc' }
             });
             return location;
         } catch (error) {
-            console.error('ERROR FETCHING LATEST LOCATION: ',error);
+            console.error('ERROR FETCHING LATEST LOCATION: ', error);
             throw error;
         }
     }
@@ -47,13 +51,13 @@ class LocationModel {
 
             const result = await prisma.getClient().location.deleteMany({
                 where: {
-                    createdAt: {lt: cutoffDate}
+                    createdAt: { lt: cutoffDate }
                 }
             });
             return result.count;
         }
         catch (error) {
-            console.error('ERROR ON DELETEING OLD LOCATION: ',error);
+            console.error('ERROR ON DELETEING OLD LOCATION: ', error);
             throw error;
         }
     }
@@ -75,7 +79,7 @@ class LocationModel {
                 }
             });
         } catch (error) {
-            console.error('ERROR FETCHING LOCATION BY DATE RANGE: ',error);
+            console.error('ERROR FETCHING LOCATION BY DATE RANGE: ', error);
             throw error;
         }
     }
@@ -84,7 +88,7 @@ class LocationModel {
     async getDataByImei(imei) {
         imei = imei.toString();
         try {
-            const location = await prisma.getClient().location.findMany({where: {imei}, orderBy: {createdAt: 'asc'}});
+            const location = await prisma.getClient().location.findMany({ where: { imei }, orderBy: { createdAt: 'asc' } });
             return location;
         } catch (error) {
             console.error('LOCATION FETCH ERROR', error);
@@ -182,7 +186,7 @@ class LocationModel {
 
             // Calculate statistics
             const stats = this.calculateReportStats(locations, statuses);
-            
+
             // Generate daily data for charts
             const dailyData = this.generateDailyData(locations, startDate, endDate);
 
@@ -230,7 +234,7 @@ class LocationModel {
         }
 
         // Calculate time periods
-        const totalTime = locations.length > 1 
+        const totalTime = locations.length > 1
             ? (new Date(locations[locations.length - 1].createdAt) - new Date(locations[0].createdAt)) / 1000 / 60 // in minutes
             : 0;
 
@@ -258,7 +262,7 @@ class LocationModel {
         // Calculate time periods for each day
         Object.values(statusByDay).forEach(dayStatuses => {
             dayStatuses.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            
+
             for (let i = 0; i < dayStatuses.length - 1; i++) {
                 const current = dayStatuses[i];
                 const next = dayStatuses[i + 1];
@@ -366,13 +370,76 @@ class LocationModel {
         const R = 6371; // Radius of the Earth in kilometers
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = 
+        const a =
             Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }
+
+
+    // Update vehicle odometer based on new location
+async updateVehicleOdometer(imei, newLat, newLon) {
+    try {
+        // Get the previous location for this vehicle
+        const previousLocation = await prisma.getClient().location.findFirst({
+            where: { imei: imei.toString() },
+            orderBy: { createdAt: 'desc' },
+            skip: 1 // Skip the current location we just created
+        });
+
+        if (!previousLocation) {
+            console.log(`First location for vehicle ${imei}, odometer remains 0`);
+            return; // First location, no distance to add
+        }
+
+        // Calculate distance between previous and current location
+        const distance = this.calculateDistance(
+            previousLocation.latitude,
+            previousLocation.longitude,
+            newLat,
+            newLon
+        );
+
+        // Filter out very small distances (GPS noise)
+        if (distance < 0.001) { // Less than 1 meter
+            console.log(`Distance too small (${distance} km), skipping odometer update`);
+            return;
+        }
+
+        // Get current vehicle odometer
+        const vehicle = await prisma.getClient().vehicle.findUnique({
+            where: { imei: imei.toString() },
+            select: { odometer: true }
+        });
+
+        if (!vehicle) {
+            console.log(`Vehicle ${imei} not found, skipping odometer update`);
+            return;
+        }
+
+        // Calculate new odometer value
+        const currentOdometer = parseFloat(vehicle.odometer) || 0;
+        const newOdometer = currentOdometer + distance;
+
+        // Update vehicle odometer
+        await prisma.getClient().vehicle.update({
+            where: { imei: imei.toString() },
+            data: {
+                odometer: Math.round(newOdometer * 100) / 100, // Round to 2 decimal places
+                odometerUpdatedAt: new Date()
+            }
+        });
+
+        console.log(`Odometer updated for vehicle ${imei}: ${currentOdometer} + ${distance} = ${newOdometer} km`);
+
+    } catch (error) {
+        console.error('ERROR UPDATING ODOMETER:', error);
+        // Don't throw error - odometer update failure shouldn't break location save
+    }
+}
+
 }
 
 module.exports = LocationModel
