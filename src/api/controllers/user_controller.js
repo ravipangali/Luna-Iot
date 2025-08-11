@@ -16,13 +16,25 @@ class UserController {
     static async getUserByPhone(req, res) {
         try {
             const { phone } = req.params;
+            console.log('🔍 getUserByPhone called with phone:', phone);
+            console.log('🔍 Request user:', req.user);
+            
             const userModel = new UserModel();
+            console.log('🔍 UserModel instantiated');
+            
             const user = await userModel.getUserByPhone(phone);
+            console.log('�� User found:', user ? 'YES' : 'NO');
+            
             if (!user) {
+                console.log('�� User not found for phone:', phone);
                 return errorResponse(res, 'User not found', 404);
             }
+            
+            console.log('🔍 User retrieved successfully:', user.id, user.name);
             return successResponse(res, user, 'User retrieved successfully');
         } catch (error) {
+            console.error('❌ ERROR in getUserByPhone:', error);
+            console.error('❌ Error stack:', error.stack);
             return errorResponse(res, 'Failed to retrieve user', 500);
         }
     }

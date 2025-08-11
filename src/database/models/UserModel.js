@@ -30,14 +30,23 @@ class UserModel {
 
     static async getUserByPhone(phone) {
         try {
-            return await prisma.getClient().user.findUnique({
+            console.log('🔍 UserModel.getUserByPhone called with phone:', phone);
+            
+            const prismaClient = prisma.getClient();
+            console.log('🔍 Prisma client obtained');
+            
+            const user = await prismaClient.user.findUnique({
                 where: { phone },
                 include: {
                     role: true
                 }
             });
+            
+            console.log('🔍 Prisma query executed, user found:', user ? 'YES' : 'NO');
+            return user;
         } catch (error) {
-            console.error('ERROR FETCHING USER BY PHONE', error);
+            console.error('❌ ERROR FETCHING USER BY PHONE:', error);
+            console.error('❌ Error stack:', error.stack);
             throw error;
         }
     }
