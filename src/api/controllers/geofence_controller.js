@@ -54,14 +54,34 @@ class GeofenceController {
 
             // Assign to vehicles if provided
             if (vehicleIds && Array.isArray(vehicleIds) && vehicleIds.length > 0) {
-                // Filter out invalid vehicle IDs
-                const validVehicleIds = vehicleIds.filter(id => 
-                    Number.isInteger(id) && id > 0
-                );
-                
-                if (validVehicleIds.length > 0) {
-                    console.log('Assigning geofence to vehicles:', validVehicleIds);
-                    await geofenceModel.assignGeofenceToVehicles(geofence.id, validVehicleIds);
+                try {
+                    // Convert IMEI numbers to actual vehicle IDs
+                    const vehicleModel = require('../../database/models/VehicleModel');
+                    const actualVehicleIds = [];
+                    
+                    for (const imei of vehicleIds) {
+                        // Check if this is an IMEI (15 digits) or actual vehicle ID
+                        if (imei.toString().length === 15) {
+                            // This is an IMEI, find the corresponding vehicle ID
+                            const vehicle = await vehicleModel.getDataByImei(imei);
+                            if (vehicle) {
+                                actualVehicleIds.push(vehicle.id);
+                            } else {
+                                console.warn(`Vehicle with IMEI ${imei} not found`);
+                            }
+                        } else {
+                            // This is already a vehicle ID
+                            actualVehicleIds.push(parseInt(imei));
+                        }
+                    }
+                    
+                    if (actualVehicleIds.length > 0) {
+                        console.log('Assigning geofence to vehicles with IDs:', actualVehicleIds);
+                        await geofenceModel.assignGeofenceToVehicles(geofence.id, actualVehicleIds);
+                    }
+                } catch (error) {
+                    console.error('Error converting IMEI to vehicle IDs:', error);
+                    // Continue without vehicle assignment rather than failing the entire request
                 }
             }
 
