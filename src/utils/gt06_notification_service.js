@@ -32,20 +32,30 @@ class GT06NotificationService {
                     }
                 }
             });
+            console.log(`Found ${userVehicles.length} users with access to vehicle ${vehicle.vehicleNo}`);
 
             // Filter users with FCM tokens
             const usersWithFcmTokens = userVehicles
                 .map(uv => uv.user)
                 .filter(user => user.fcmToken && user.fcmToken.trim() !== '');
-
+            
+            console.log(`Users with FCM tokens: ${usersWithFcmTokens.length}`);
+            console.log('User details:', usersWithFcmTokens.map(u => ({ 
+                id: u.id, 
+                name: u.name, 
+                fcmToken: u.fcmToken ? u.fcmToken.substring(0, 20) + '...' : 'null' 
+            })));
+            
             if (usersWithFcmTokens.length === 0) {
                 console.log(`No users with FCM tokens found for vehicle: ${vehicle.vehicleNo}`);
                 return;
             }
-
+            
             // Extract FCM tokens
             const fcmTokens = usersWithFcmTokens.map(user => user.fcmToken);
-
+            console.log(`FCM Tokens to send to: ${fcmTokens.length}`);
+            console.log('First token sample:', fcmTokens[0] ? fcmTokens[0].substring(0, 50) + '...' : 'null');
+            
             // Send notification to all users
             const result = await firebaseService.sendNotificationToMultipleUsers(
                 fcmTokens,
@@ -58,7 +68,8 @@ class GT06NotificationService {
                     imei: imei
                 }
             );
-
+            
+            console.log(`Firebase result:`, result);
             console.log(`Notification sent to ${fcmTokens.length} users for vehicle ${vehicle.vehicleNo}: ${title}`);
             return result;
 
