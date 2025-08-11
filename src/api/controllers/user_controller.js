@@ -1,7 +1,6 @@
 const UserModel = require('../../database/models/UserModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 const bcrypt = require('bcryptjs');
-const { successResponse, errorResponse } = require('../utils/response_handler');
 
 
 class UserController {
