@@ -44,7 +44,7 @@ class GeofenceController {
                 title,
                 type,
                 boundary: boundary, // Send as array of strings, Prisma will handle JSON conversion
-                createdBy: user.id
+               
             };
 
             const geofenceModel = new GeofenceModel();
