@@ -153,10 +153,10 @@ class DeviceController {
             }
 
             const deviceModel = new DeviceModel();
-            const userModel = new UserModel();
+            
 
             // Check if user exists and is a dealer
-            const targetUser = await userModel.getUserByPhone(userPhone);
+            const targetUser = await UserModel.getUserByPhone(userPhone);
             if (!targetUser) {
                 return errorResponse(res, 'User not found', 404);
             }
@@ -199,10 +199,9 @@ class DeviceController {
             }
 
             const deviceModel = new DeviceModel();
-            const userModel = new UserModel();
-
+            
             // Check if user exists
-            const targetUser = await userModel.getUserByPhone(userPhone);
+            const targetUser = await UserModel.getUserByPhone(userPhone);
             if (!targetUser) {
                 return errorResponse(res, 'User not found', 404);
             }

@@ -6,8 +6,7 @@ const bcrypt = require('bcryptjs');
 class UserController {
     static async getAllUsers(req, res) {
         try {
-            const userModel = new UserModel();
-            const users = await userModel.getAllUsers();
+            const users = await UserModel.getAllUsers();
             return successResponse(res, users, 'Users retrieved successfully');
         } catch (error) {
             return errorResponse(res, 'Failed to retrieve users', 500);
@@ -17,9 +16,6 @@ class UserController {
     static async getUserByPhone(req, res) {
         try {
             const { phone } = req.params;
-            console.log('🔍 getUserByPhone called with phone:', phone);
-            console.log('🔍 Request user:', req.user);
-            
             const user = await UserModel.getUserByPhone(phone);
             
             if (!user) {
@@ -41,13 +37,12 @@ class UserController {
                 return errorResponse(res, 'Missing required fields', 400);
             }
             // Check if user already exists
-            const userModel = new UserModel();
-            const existing = await userModel.getUserByPhone(phone);
+            const existing = await UserModel.getUserByPhone(phone);
             if (existing) {
                 return errorResponse(res, 'User already exists', 400);
             }
             const hashedPassword = await bcrypt.hash(password, 12);
-            const user = await userModel.createUser({
+            const user = await UserModel.createUser({
                 name,
                 phone,
                 password: hashedPassword,
@@ -94,8 +89,7 @@ static async updateUser(req, res) {
     static async deleteUser(req, res) {
         try {
             const { phone } = req.params;
-            const userModel = new UserModel();
-            await userModel.deleteUser(phone);
+            await UserModel.deleteUser(phone);
             return successResponse(res, null, 'User deleted successfully');
         } catch (error) {
             return errorResponse(res, 'Failed to delete user', 500);

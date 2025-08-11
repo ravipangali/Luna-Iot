@@ -171,10 +171,9 @@ class VehicleController {
             }
 
             const vehicleModel = new VehicleModel();
-            const userModel = new UserModel();
 
             // Check if target user exists
-            const targetUser = await userModel.getUserByPhone(userPhone);
+            const targetUser = await UserModel.getUserByPhone(userPhone);
             if (!targetUser) {
                 return errorResponse(res, 'User not found', 404);
             }
