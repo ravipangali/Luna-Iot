@@ -94,10 +94,10 @@ class GT06Handler {
             };
 
             // First Phase: Check speed limit and send overspeeding notification
-            await GT06NotificationService.checkSpeedLimitAndNotify(data.imei, locationData.speed);
+            GT06NotificationService.checkSpeedLimitAndNotify(data.imei, locationData.speed);
 
             // Second Phase: Check if vehicle is moving after ignition off
-            await GT06NotificationService.checkMovingAfterIgnitionOffAndNotify(data.imei);
+            GT06NotificationService.checkMovingAfterIgnitionOffAndNotify(data.imei);
 
             // Filter: Check speed conditions
             let shouldSave = false;
