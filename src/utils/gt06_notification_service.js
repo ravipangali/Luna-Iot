@@ -61,12 +61,7 @@ class GT06NotificationService {
                 fcmTokens,
                 title,
                 message,
-                {
-                    ...data,
-                    vehicleId: vehicle.id,
-                    vehicleNo: vehicle.vehicleNo,
-                    imei: imei
-                }
+                {}
             );
             
             console.log(`Firebase result:`, result);
