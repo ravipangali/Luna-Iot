@@ -6,7 +6,7 @@ class GeofenceModel {
         try {
             console.log('Creating geofence with data:', data);
             
-            const geofence = await prisma.geofence.create({
+            const geofence = await prisma.getClient().geofence.create({
                 data: {
                     title: data.title,
                     type: data.type,
@@ -34,7 +34,7 @@ class GeofenceModel {
                 vehicleId: vehicleId
             }));
 
-            await prisma.geofence_vehicles.createMany({
+            await prisma.getClient().geofence_vehicles.createMany({
                 data: assignments,
                 skipDuplicates: true
             });
@@ -55,7 +55,7 @@ class GeofenceModel {
                 userId: userId
             }));
 
-            await prisma.geofence_users.createMany({
+            await prisma.getClient().geofence_users.createMany({
                 data: assignments,
                 skipDuplicates: true
             });
