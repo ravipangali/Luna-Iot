@@ -15,10 +15,51 @@ class StatusModel {
                     relay: data.relay,
                 }
             });
+            // If ignition is off, create a new location record with speed = 0
+            if (data.ignition === false) {
+                await this.createIgnitionOffLocation(data.imei.toString());
+            }
             return status;
         } catch (error) {
             console.error('STATUS CREATION ERROR', error);
             throw error;
+        }
+    }
+
+    // Create location record when ignition is off
+    async createIgnitionOffLocation(imei) {
+        try {
+            // Get the latest location data for this IMEI
+            const latestLocation = await prisma.getClient().location.findFirst({
+                where: { imei },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            if (latestLocation) {
+                // Create new location record with same data but speed = 0
+                const newLocation = await prisma.getClient().location.create({
+                    data: {
+                        imei: latestLocation.imei,
+                        latitude: latestLocation.latitude,
+                        longitude: latestLocation.longitude,
+                        speed: 0, // Set speed to 0 for ignition off
+                        course: latestLocation.course,
+                        realTimeGps: latestLocation.realTimeGps,
+                        satellite: latestLocation.satellite,
+                        createdAt: new Date()
+                    }
+                });
+
+                console.log(`Created ignition-off location record for IMEI ${imei} with speed 0`);
+                return newLocation;
+            } else {
+                console.log(`No previous location data found for IMEI ${imei}, skipping ignition-off location creation`);
+                return null;
+            }
+        } catch (error) {
+            console.error('ERROR CREATING IGNITION-OFF LOCATION:', error);
+            // Don't throw error - location creation failure shouldn't break status save
+            return null;
         }
     }
 
