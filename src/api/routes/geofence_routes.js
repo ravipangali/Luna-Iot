@@ -17,4 +17,4 @@ router.get('/geofence/vehicle/:imei', GeofenceController.getGeofencesByImei);
 router.put('/geofence/update/:id', GeofenceController.updateGeofence);
 router.delete('/geofence/delete/:id', GeofenceController.deleteGeofence);
 
-module.exports = router;s
+module.exports = router;
