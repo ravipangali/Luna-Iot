@@ -1,7 +1,8 @@
 const UserModel = require('../../database/models/UserModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 const bcrypt = require('bcryptjs');
-const ResponseHandler = require('../utils/response_handler');
+const { successResponse, errorResponse } = require('../utils/response_handler');
+
 
 class UserController {
     static async getAllUsers(req, res) {
@@ -23,14 +24,14 @@ class UserController {
             const user = await UserModel.getUserByPhone(phone);
             
             if (!user) {
-                return ResponseHandler.sendError(res, 'User not found', 404);
+                return errorResponse(res, 'User not found', 404);
             }
             
-            return ResponseHandler.sendSuccess(res, 'User found', user);
+            return successResponse(res, user, 'User found');
         } catch (error) {
             console.error('❌ ERROR in getUserByPhone:', error);
             console.error('❌ Error stack:', error.stack);
-            return ResponseHandler.sendError(res, 'Internal server error', 500);
+            return errorResponse(res, 'Internal server error', 500);
         }
     }
 
