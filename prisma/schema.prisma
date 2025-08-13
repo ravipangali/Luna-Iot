@@ -384,3 +384,16 @@ model GeofenceUser {
   @@unique([geofenceId, userId])
   @@map("geofence_users")
 }
+
+
+model Popup {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  image     String?  @db.VarChar(500)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("popups")
+}

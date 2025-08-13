@@ -20,6 +20,7 @@ const locationRoutes = require('./api/routes/location_routes');
 const statusRoutes = require('./api/routes/status_routes');
 const vehicleRoutes = require('./api/routes/vehicle_routes');
 const geofenceRoutes = require('./api/routes/geofence_routes');
+const popupRoutes = require('./api/routes/popup_routes');
 
 // Express App
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api', AuthMiddleware.verifyToken, locationRoutes);
 app.use('/api', AuthMiddleware.verifyToken, statusRoutes);
 app.use('/api', AuthMiddleware.verifyToken, vehicleRoutes);
 app.use('/api', AuthMiddleware.verifyToken, geofenceRoutes);
+app.use('/api', AuthMiddleware.verifyToken, popupRoutes);
 
 // Middleware
 app.use(errorMiddleware);
