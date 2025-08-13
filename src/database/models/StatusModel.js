@@ -50,7 +50,6 @@ class StatusModel {
                     }
                 });
 
-                console.log(`Created ignition-off location record for IMEI ${imei} with speed 0`);
                 return newLocation;
             } else {
                 console.log(`No previous location data found for IMEI ${imei}, skipping ignition-off location creation`);

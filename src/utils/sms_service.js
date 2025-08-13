@@ -29,8 +29,6 @@ class SMSService {
             
             const response = await axios.get(url);
             
-            console.log('SMS Response:', response.data);
-            
             // Check if SMS was sent successfully
             // The API returns "SMS-SHOOT-ID/..." when successful
             if (response.data && response.data.includes('SMS-SHOOT-ID')) {

@@ -30,10 +30,8 @@ class UserModel {
 
     static async getUserByPhone(phone) {
         try {
-            console.log('🔍 UserModel.getUserByPhone called with phone:', phone);
             
             const prismaClient = prisma.getClient();
-            console.log('🔍 Prisma client obtained');
             
             const user = await prismaClient.user.findUnique({
                 where: { phone },
@@ -42,7 +40,6 @@ class UserModel {
                 }
             });
             
-            console.log('🔍 Prisma query executed, user found:', user ? 'YES' : 'NO');
             return user;
         } catch (error) {
             console.error('❌ ERROR FETCHING USER BY PHONE:', error);

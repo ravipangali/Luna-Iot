@@ -87,12 +87,8 @@ class VehicleController {
             const user = req.user;
             const updateData = req.body;
 
-            console.log('Original IMEI:', imei);
-            console.log('Update data IMEI:', updateData.imei);
-            
             // Only check for device existence and vehicle duplicates if IMEI is being changed
             if (updateData.imei && updateData.imei !== imei) {
-                console.log('IMEI is being changed from', imei, 'to', updateData.imei);
                 
                 // Check if device exists
                 const deviceModel = new DeviceModel();

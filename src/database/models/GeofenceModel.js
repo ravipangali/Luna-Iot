@@ -4,8 +4,6 @@ class GeofenceModel {
     // Create new geofence
     async createGeofence(data) {
         try {
-            console.log('Creating geofence with data:', data);
-            
             const geofence = await prisma.getClient().geofence.create({
                 data: {
                     title: data.title,
@@ -17,7 +15,6 @@ class GeofenceModel {
                 }
             });
     
-            console.log('Geofence created successfully:', geofence);
             return geofence;
         } catch (error) {
             console.error('Error creating geofence:', error);
@@ -28,7 +25,6 @@ class GeofenceModel {
 // Fix table naming consistency - use the correct Prisma model names
 async assignGeofenceToVehicles(geofenceId, vehicleIds) {
     try {
-        console.log(`Assigning geofence ${geofenceId} to vehicles:`, vehicleIds);
         
         const assignments = vehicleIds.map(vehicleId => ({
             geofenceId: geofenceId,
@@ -41,7 +37,6 @@ async assignGeofenceToVehicles(geofenceId, vehicleIds) {
             skipDuplicates: true
         });
 
-        console.log('Vehicle assignments created successfully');
     } catch (error) {
         console.error('Error assigning vehicles to geofence:', error);
         throw error;
@@ -50,7 +45,6 @@ async assignGeofenceToVehicles(geofenceId, vehicleIds) {
 
 async assignGeofenceToUsers(geofenceId, userIds) {
     try {
-        console.log(`Assigning geofence ${geofenceId} to users:`, userIds);
         
         const assignments = userIds.map(userId => ({
             geofenceId: geofenceId,
@@ -63,7 +57,6 @@ async assignGeofenceToUsers(geofenceId, userIds) {
             skipDuplicates: true
         });
 
-        console.log('User assignments created successfully');
     } catch (error) {
         console.error('Error assigning users to geofence:', error);
         throw error;

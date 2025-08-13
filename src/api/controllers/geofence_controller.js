@@ -9,14 +9,6 @@ class GeofenceController {
             const user = req.user;
             const { title, type, boundary, vehicleIds, userIds } = req.body;
 
-            console.log('Creating geofence with data:', {
-                title,
-                type,
-                boundary,
-                vehicleIds,
-                userIds
-            });
-
             // Validate required fields
             if (!title || !type || !boundary || !Array.isArray(boundary)) {
                 return errorResponse(res, 'Title, type, and boundary are required', 400);
@@ -50,8 +42,6 @@ class GeofenceController {
             const geofenceModel = new GeofenceModel();
             const geofence = await geofenceModel.createGeofence(geofenceData);
 
-            console.log('Geofence created with ID:', geofence.id);
-
 
             // Assign to vehicles if provided
             if (vehicleIds && Array.isArray(vehicleIds) && vehicleIds.length > 0) {
@@ -61,31 +51,24 @@ class GeofenceController {
                     const vehicleModel = new VehicleModel();
                     const actualVehicleIds = [];
 
-                    console.log('Processing vehicle IDs:', vehicleIds);
-
                     for (const imei of vehicleIds) {
                         // Check if this is an IMEI (15 digits) or actual vehicle ID
                         if (imei.toString().length === 15) {
                             // This is an IMEI, find the corresponding vehicle ID
-                            console.log(`Looking up vehicle for IMEI: ${imei}`);
                             const vehicle = await vehicleModel.getDataByImei(imei);
                             if (vehicle) {
                                 actualVehicleIds.push(vehicle.id);
-                                console.log(`✓ Found vehicle ID ${vehicle.id} for IMEI ${imei}`);
                             } else {
                                 console.warn(`✗ Vehicle with IMEI ${imei} not found`);
                             }
                         } else {
                             // This is already a vehicle ID
                             actualVehicleIds.push(parseInt(imei));
-                            console.log(`✓ Using vehicle ID directly: ${imei}`);
                         }
                     }
 
                     if (actualVehicleIds.length > 0) {
-                        console.log('Assigning geofence to vehicles with IDs:', actualVehicleIds);
                         await geofenceModel.assignGeofenceToVehicles(geofence.id, actualVehicleIds);
-                        console.log('✓ Vehicle assignment completed successfully');
                     } else {
                         console.log('No valid vehicle IDs found for assignment');
                     }
@@ -96,9 +79,7 @@ class GeofenceController {
             }
 
             // Always assign the current user to the geofence (creator)
-            console.log('Assigning geofence creator (user ID):', user.id);
             await geofenceModel.assignGeofenceToUsers(geofence.id, [user.id]);
-            console.log('✓ Geofence creator assigned successfully');
 
             // Assign to additional users if provided
             if (userIds && Array.isArray(userIds) && userIds.length > 0) {
@@ -109,9 +90,7 @@ class GeofenceController {
                     );
 
                     if (validUserIds.length > 0) {
-                        console.log('Assigning geofence to additional users:', validUserIds);
                         await geofenceModel.assignGeofenceToUsers(geofence.id, validUserIds);
-                        console.log('✓ Additional users assigned successfully');
                     }
                 } catch (error) {
                     console.error('Error assigning additional users:', error);

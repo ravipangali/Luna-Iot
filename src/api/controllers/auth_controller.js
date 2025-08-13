@@ -67,9 +67,6 @@ class AuthController {
 
             // Generate OTP
             const otp = AuthController.generateOTP();
-            console.log('=== OTP CREATION DEBUG ===');
-            console.log('Generated OTP:', otp);
-            console.log('OTP type:', typeof otp);
             
             const otpModel = new OtpModel();
 

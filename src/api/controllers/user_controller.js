@@ -61,9 +61,6 @@ static async updateUser(req, res) {
         const { phone } = req.params;
         const updateData = req.body;
         
-        console.log('Updating user with phone:', phone);
-        console.log('Update data:', updateData);
-        
         // Fix: Use static methods directly, don't instantiate
         // First check if user exists
         const existingUser = await UserModel.getUserByPhone(phone);

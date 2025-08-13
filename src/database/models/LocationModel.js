@@ -431,7 +431,6 @@ async updateVehicleOdometer(imei, newLat, newLon) {
             }
         });
 
-        console.log(`Odometer updated for vehicle ${imei}: ${currentOdometer} + ${distance} = ${newOdometer} km`);
 
     } catch (error) {
         console.error('ERROR UPDATING ODOMETER:', error);

@@ -55,7 +55,6 @@ class GT06NotificationService {
                 {}
             );
 
-            console.log(`Notification sent to ${fcmTokens.length} users for vehicle ${vehicle.vehicleNo}: ${title}`);
             return result;
 
         } catch (error) {

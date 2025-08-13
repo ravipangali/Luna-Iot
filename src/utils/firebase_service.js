@@ -18,7 +18,6 @@ class FirebaseService {
                     })
                 });
             }
-            console.log('Firebase Admin SDK initialized successfully');
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
@@ -53,7 +52,6 @@ class FirebaseService {
             };
 
             const response = await admin.messaging().send(notification);
-            console.log('Successfully sent notification:', response);
             return { success: true, messageId: response };
         } catch (error) {
             console.error('Error sending notification:', error);
@@ -138,7 +136,6 @@ class FirebaseService {
             };
 
             const response = await admin.messaging().send(notification);
-            console.log('Successfully sent notification to topic:', response);
             return { success: true, messageId: response };
         } catch (error) {
             console.error('Error sending notification to topic:', error);
@@ -183,7 +180,6 @@ class FirebaseService {
                 ...notification
             });
     
-            console.log('Successfully sent notifications:', response.successCount, 'successful,', response.failureCount, 'failed');
             return { 
                 success: true, 
                 successCount: response.successCount, 

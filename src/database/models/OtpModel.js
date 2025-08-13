@@ -27,11 +27,6 @@ class OtpModel {
 
     async verifyOTP(phone, otp) {
         try {
-            console.log('=== OTP VERIFICATION DEBUG ===');
-            console.log('Verifying OTP for phone:', phone);
-            console.log('OTP received:', otp);
-            console.log('OTP type:', typeof otp);
-            
             // Ensure OTP is treated as string for comparison
             const otpString = String(otp).trim();
             
@@ -45,12 +40,6 @@ class OtpModel {
                 }
             });
     
-            console.log('OTP record found:', otpRecord ? 'YES' : 'NO');
-            if (otpRecord) {
-                console.log('Stored OTP:', otpRecord.otp);
-                console.log('Stored OTP type:', typeof otpRecord.otp);
-                console.log('Expires at:', otpRecord.expiresAt);
-            }
     
             return otpRecord;
         } catch (error) {
