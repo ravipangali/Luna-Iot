@@ -34,7 +34,7 @@ app.use(express.json());
 
 
 // API Routes
-app.use('/uploads', express.static(`http://84.247.131.246:7070/uploads`));
+app.use('/uploads', express.static(`/home/luna/luna_iot/Luna-Iot/uploads`));
 
 app.get('/', (req, res) => {
     res.json({
