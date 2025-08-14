@@ -30,6 +30,7 @@ app.use(express.json());
 
 
 // API Routes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {
     res.json({
@@ -48,7 +49,6 @@ app.use('/api', AuthMiddleware.verifyToken, statusRoutes);
 app.use('/api', AuthMiddleware.verifyToken, vehicleRoutes);
 app.use('/api', AuthMiddleware.verifyToken, geofenceRoutes);
 app.use('/api', AuthMiddleware.verifyToken, popupRoutes);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Middleware
 app.use(errorMiddleware);
