@@ -7,6 +7,7 @@ const { errorMiddleware } = require('./api/middleware/error_middleware');
 const socketService = require('./socket/socket_service');
 const AuthMiddleware = require('./api/middleware/auth_middleware');
 const otpCleanupService = require('./utils/otp_cleanup_service');
+const path = require('path');
 require('dotenv').config();
 
 
@@ -47,6 +48,7 @@ app.use('/api', AuthMiddleware.verifyToken, statusRoutes);
 app.use('/api', AuthMiddleware.verifyToken, vehicleRoutes);
 app.use('/api', AuthMiddleware.verifyToken, geofenceRoutes);
 app.use('/api', AuthMiddleware.verifyToken, popupRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Middleware
 app.use(errorMiddleware);

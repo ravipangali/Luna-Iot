@@ -1,5 +1,7 @@
 const PopupModel = require('../../database/models/PopupModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
+const fs = require('fs');
+const path = require('path');
 
 class PopupController {
     // Get all active popups (public endpoint)
@@ -7,8 +9,14 @@ class PopupController {
         try {
             const popupModel = new PopupModel();
             const popups = await popupModel.getActivePopups();
-            
-            return successResponse(res, popups, 'Active popups retrieved successfully');
+
+            // Add full image URLs to popups
+            const popupsWithImages = popups.map(popup => ({
+                ...popup,
+                imageUrl: popup.image ? `http://84.247.131.246:7070/uploads/popups/${popup.image}` : null
+            }));
+
+            return successResponse(res, popupsWithImages, 'Active popups retrieved successfully');
         } catch (error) {
             console.error('Error in getActivePopups: ', error);
             return errorResponse(res, 'Failed to retrieve popups', 500);
@@ -19,16 +27,22 @@ class PopupController {
     static async getAllPopups(req, res) {
         try {
             const user = req.user;
-            
+
             // Only Super Admin can view all popups
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can view all popups', 403);
             }
-            
+
             const popupModel = new PopupModel();
             const popups = await popupModel.getAllPopups();
-            
-            return successResponse(res, popups, 'All popups retrieved successfully');
+
+            // Add full image URLs to popups
+            const popupsWithImages = popups.map(popup => ({
+                ...popup,
+                imageUrl: popup.image ? `http://84.247.131.246:7070/uploads/popups/${popup.image}` : null
+            }));
+
+            return successResponse(res, popupsWithImages, 'All popups retrieved successfully');
         } catch (error) {
             console.error('Error in getAllPopups: ', error);
             return errorResponse(res, 'Failed to retrieve popups', 500);
@@ -40,20 +54,25 @@ class PopupController {
         try {
             const { id } = req.params;
             const user = req.user;
-            
             // Only Super Admin can view popup details
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can view popup details', 403);
             }
-            
+
             const popupModel = new PopupModel();
             const popup = await popupModel.getPopupById(id);
-            
+
             if (!popup) {
                 return errorResponse(res, 'Popup not found', 404);
             }
-            
-            return successResponse(res, popup, 'Popup retrieved successfully');
+
+            // Add full image URL
+            const popupWithImage = {
+                ...popup,
+                imageUrl: popup.image ? `http://84.247.131.246:7070/uploads/popups/${popup.image}` : null
+            };
+
+            return successResponse(res, popupWithImage, 'Popup retrieved successfully');
         } catch (error) {
             console.error('Error in getPopupById: ', error);
             return errorResponse(res, 'Failed to retrieve popup', 500);
@@ -64,17 +83,29 @@ class PopupController {
     static async createPopup(req, res) {
         try {
             const user = req.user;
-            
+
             // Only Super Admin can create popups
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can create popups', 403);
             }
-            
-            const popupData = req.body;
+
+            const popupData = {
+                title: req.body.title,
+                message: req.body.message,
+                isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' : true,
+                image: req.file ? req.file.filename : null
+            };
+
             const popupModel = new PopupModel();
             const popup = await popupModel.createPopup(popupData);
-            
-            return successResponse(res, popup, 'Popup created successfully', 201);
+
+            // Add full image URL
+            const popupWithImage = {
+                ...popup,
+                imageUrl: popup.image ? `http://84.247.131.246:7070/uploads/popups/${popup.image}` : null
+            };
+
+            return successResponse(res, popupWithImage, 'Popup created successfully', 201);
         } catch (error) {
             console.error('Error in createPopup:', error);
             return errorResponse(res, 'Failed to create popup', 500);
@@ -86,17 +117,45 @@ class PopupController {
         try {
             const { id } = req.params;
             const user = req.user;
-            
+
             // Only Super Admin can update popups
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can update popups', 403);
             }
-            
-            const updateData = req.body;
+
+            const updateData = {
+                title: req.body.title,
+                message: req.body.message,
+                isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' : undefined
+            };
+
+            // Handle image update
+            if (req.file) {
+                // Get current popup to delete old image
+                const popupModel = new PopupModel();
+                const currentPopup = await popupModel.getPopupById(id);
+
+                if (currentPopup && currentPopup.image) {
+                    // Delete old image file
+                    const oldImagePath = path.join(__dirname, '../../../uploads/popups', currentPopup.image);
+                    if (fs.existsSync(oldImagePath)) {
+                        fs.unlinkSync(oldImagePath);
+                    }
+                }
+
+                updateData.image = req.file.filename;
+            }
+
             const popupModel = new PopupModel();
             const popup = await popupModel.updatePopup(id, updateData);
-            
-            return successResponse(res, popup, 'Popup updated successfully');
+
+            // Add full image URL
+            const popupWithImage = {
+                ...popup,
+                imageUrl: popup.image ? `${req.protocol}://${req.protocol}://${req.get('host')}/uploads/popups/${popup.image}` : null
+            };
+
+            return successResponse(res, popupWithImage, 'Popup updated successfully');
         } catch (error) {
             console.error('Error in updatePopup:', error);
             return errorResponse(res, 'Failed to update popup', 500);
@@ -108,15 +167,26 @@ class PopupController {
         try {
             const { id } = req.params;
             const user = req.user;
-            
+
             // Only Super Admin can delete popups
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can delete popups', 403);
             }
-            
+
+            // Get popup to delete associated image
             const popupModel = new PopupModel();
+            const popup = await popupModel.getPopupById(id);
+
+            if (popup && popup.image) {
+                // Delete image file
+                const imagePath = path.join(__dirname, '../../../uploads/popups', popup.image);
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+
             await popupModel.deletePopup(id);
-            
+
             return successResponse(res, null, 'Popup deleted successfully');
         } catch (error) {
             console.error('Error in deletePopup:', error);
