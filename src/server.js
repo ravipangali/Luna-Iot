@@ -11,6 +11,10 @@ const path = require('path');
 require('dotenv').config();
 
 
+// PORTS 
+const API_PORT = process.env.API_PORT || 7070;
+const TCP_PORT = process.env.TCP_PORT || 7777;
+
 // IMPORT Routes
 const authRoutes = require('./api/routes/auth_routes');
 const notificationRoutes = require('./api/routes/notification_routes');
@@ -30,7 +34,7 @@ app.use(express.json());
 
 
 // API Routes
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(`http://84.247.131.246:7070/uploads`));
 
 app.get('/', (req, res) => {
     res.json({
@@ -53,9 +57,6 @@ app.use('/api', AuthMiddleware.verifyToken, popupRoutes);
 // Middleware
 app.use(errorMiddleware);
 
-// PORTS 
-const API_PORT = process.env.API_PORT || 7070;
-const TCP_PORT = process.env.TCP_PORT || 7777;
 
 
 // Number of CPU for Cluster
