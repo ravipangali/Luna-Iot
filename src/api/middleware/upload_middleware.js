@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter
+// Enhanced file filter that checks both MIME type and file extension
 const fileFilter = (req, file, cb) => {
     const allowedMimeTypes = [
         'image/jpeg',
@@ -34,11 +34,27 @@ const fileFilter = (req, file, cb) => {
         'image/webp'
     ];
     
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    
+    // Check MIME type first
     if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
-    } else {
-        cb(new Error(`File type ${file.mimetype} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`), false);
+        return;
     }
+    
+    // If MIME type is application/octet-stream, check file extension
+    if (file.mimetype === 'application/octet-stream') {
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        if (allowedExtensions.includes(fileExtension)) {
+            // Allow the file but log a warning
+            console.warn(`File ${file.originalname} has MIME type application/octet-stream but valid extension ${fileExtension}. Allowing upload.`);
+            cb(null, true);
+            return;
+        }
+    }
+    
+    // If neither MIME type nor extension is valid, reject
+    cb(new Error(`File type ${file.mimetype} with extension ${path.extname(file.originalname)} is not allowed. Allowed types: ${allowedMimeTypes.join(', ')}`), false);
 };
 
 // Configure multer
@@ -50,4 +66,30 @@ const upload = multer({
     }
 });
 
-module.exports = { upload };
+// Error handling wrapper
+const uploadWithErrorHandling = (fieldName) => {
+    return (req, res, next) => {
+        upload.single(fieldName)(req, res, (err) => {
+            if (err instanceof multer.MulterError) {
+                if (err.code === 'LIMIT_FILE_SIZE') {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'File too large. Maximum size is 5MB.'
+                    });
+                }
+                return res.status(400).json({
+                    success: false,
+                    message: `Upload error: ${err.message}`
+                });
+            } else if (err) {
+                return res.status(400).json({
+                    success: false,
+                    message: err.message
+                });
+            }
+            next();
+        });
+    };
+};
+
+module.exports = { upload, uploadWithErrorHandling };
