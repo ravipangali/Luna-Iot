@@ -2,6 +2,7 @@ const VehicleModel = require('../../database/models/VehicleModel');
 const DeviceModel = require('../../database/models/DeviceModel');
 const UserModel = require('../../database/models/UserModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
+const prisma = require('../../database/prisma')
 
 class VehicleController {
 
