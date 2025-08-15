@@ -4,15 +4,15 @@ const UserModel = require('../../database/models/UserModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 
 class VehicleController {
-    
+
     // Get all vehicles with complete data (ownership, today's km, latest status and location)
     static async getAllVehicles(req, res) {
         try {
             const user = req.user;
             const vehicleModel = new VehicleModel();
-            
+
             const vehicles = await vehicleModel.getAllVehiclesWithCompleteData(user.id, user.role.name);
-            
+
             return successResponse(res, vehicles, 'Vehicles retrieved successfully');
         } catch (error) {
             console.error('Error in getAllVehicles:', error);
@@ -26,7 +26,7 @@ class VehicleController {
             const { imei } = req.params;
             const user = req.user;
             const vehicleModel = new VehicleModel();
-            
+
             const vehicle = await vehicleModel.getVehicleByImeiWithCompleteData(imei, user.id, user.role.name);
 
             if (!vehicle) {
@@ -89,35 +89,35 @@ class VehicleController {
 
             // Only check for device existence and vehicle duplicates if IMEI is being changed
             if (updateData.imei && updateData.imei !== imei) {
-                
+
                 // Check if device exists
                 const deviceModel = new DeviceModel();
                 const device = await deviceModel.getDataByImei(updateData.imei);
-                
+
                 if (!device) {
                     return errorResponse(res, 'Device with this IMEI does not exist', 400);
                 }
-                
+
                 // Check if another vehicle with the new IMEI already exists
                 const vehicleModel = new VehicleModel();
                 const existingVehicle = await vehicleModel.getDataByImei(updateData.imei);
-                
+
                 if (existingVehicle) {
                     return errorResponse(res, 'Vehicle with this IMEI already exists', 400);
                 }
             }
-            
+
             const vehicleModel = new VehicleModel();
-            
+
             // Check access based on role
             const vehicle = await vehicleModel.getVehicleByImeiWithCompleteData(imei, user.id, user.role.name);
-            
+
             if (!vehicle) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
-            
+
             const updatedVehicle = await vehicleModel.updateData(imei, updateData);
-            
+
             if (!updatedVehicle) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }
@@ -133,19 +133,47 @@ class VehicleController {
     static async deleteVehicle(req, res) {
         try {
             const user = req.user;
-            
+
             // Only Super Admin can delete vehicles
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can delete vehicles', 403);
             }
-            
+
             const { imei } = req.params;
             const vehicleModel = new VehicleModel();
-            const result = await vehicleModel.deleteData(imei);
 
-            if (!result) {
+            // Get vehicle details before deletion for cleanup
+            const vehicle = await vehicleModel.getDataByImei(imei);
+            if (!vehicle) {
                 return errorResponse(res, 'Vehicle not found', 404);
             }
+
+            await Promise.all([
+                // Delete user-vehicle relationships
+                prisma.getClient().userVehicle.deleteMany({
+                    where: { vehicleId: vehicle.id }
+                }),
+    
+                // Delete geofence-vehicle relationships
+                prisma.getClient().geofenceVehicle.deleteMany({
+                    where: { vehicleId: vehicle.id }
+                }),
+    
+                // Delete ALL location data with this IMEI
+                prisma.getClient().location.deleteMany({
+                    where: { imei: imei.toString() }
+                }),
+    
+                // Delete ALL status data with this IMEI
+                prisma.getClient().status.deleteMany({
+                    where: { imei: imei.toString() }
+                }),
+    
+                // Delete the vehicle record itself
+                prisma.getClient().vehicle.delete({
+                    where: { imei: imei.toString() }
+                })
+            ]);
 
             return successResponse(res, null, 'Vehicle deleted successfully');
         } catch (error) {
@@ -161,7 +189,7 @@ class VehicleController {
         try {
             const user = req.user;
             const { imei, userPhone, permissions } = req.body;
-            
+
             if (!imei || !userPhone || !permissions) {
                 return errorResponse(res, 'IMEI, user phone, and permissions are required', 400);
             }
@@ -177,11 +205,11 @@ class VehicleController {
             // Check if user has permission to assign access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
-                    imei, 
-                    user.id, 
+                    imei,
+                    user.id,
                     user.role.name
                 );
-                
+
                 if (!mainUserVehicle || !mainUserVehicle.userVehicle?.isMain) {
                     return errorResponse(res, 'Access denied. Only main user or Super Admin can assign access', 403);
                 }
@@ -189,11 +217,11 @@ class VehicleController {
 
             // Assign vehicle access to user (remove assignedByUserId parameter)
             const assignment = await vehicleModel.assignVehicleAccessToUser(
-                imei, 
-                targetUser.id, 
+                imei,
+                targetUser.id,
                 permissions
             );
-            
+
             return successResponse(res, assignment, 'Vehicle access assigned successfully');
         } catch (error) {
             console.error('Error in assignVehicleAccessToUser:', error);
@@ -215,9 +243,9 @@ class VehicleController {
         try {
             const user = req.user;
             const vehicleModel = new VehicleModel();
-            
+
             const vehicles = await vehicleModel.getVehiclesForAccessAssignment(user.id, user.role.name);
-            
+
             return successResponse(res, vehicles, 'Vehicles for access assignment retrieved successfully');
         } catch (error) {
             console.error('Error in getVehiclesForAccessAssignment:', error);
@@ -230,18 +258,18 @@ class VehicleController {
         try {
             const user = req.user;
             const { imei } = req.params;
-            
+
             if (!imei) {
                 return errorResponse(res, 'IMEI is required', 400);
             }
 
             const vehicleModel = new VehicleModel();
             const assignments = await vehicleModel.getVehicleAccessAssignments(
-                imei, 
-                user.id, 
+                imei,
+                user.id,
                 user.role.name
             );
-            
+
             return successResponse(res, assignments, 'Vehicle access assignments retrieved successfully');
         } catch (error) {
             console.error('Error in getVehicleAccessAssignments:', error);
@@ -257,32 +285,32 @@ class VehicleController {
         try {
             const user = req.user;
             const { imei, userId, permissions } = req.body;
-            
+
             if (!imei || !userId || !permissions) {
                 return errorResponse(res, 'IMEI, user ID, and permissions are required', 400);
             }
 
             const vehicleModel = new VehicleModel();
-            
+
             // Check if user has permission to update access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
-                    imei, 
-                    user.id, 
+                    imei,
+                    user.id,
                     user.role.name
                 );
-                
+
                 if (!mainUserVehicle || !mainUserVehicle.userVehicle?.isMain) {
                     return errorResponse(res, 'Access denied. Only main user or Super Admin can update access', 403);
                 }
             }
 
             const assignment = await vehicleModel.updateVehicleAccess(
-                imei, 
-                userId, 
+                imei,
+                userId,
                 permissions
             );
-            
+
             return successResponse(res, assignment, 'Vehicle access updated successfully');
         } catch (error) {
             console.error('Error in updateVehicleAccess:', error);
@@ -302,28 +330,28 @@ class VehicleController {
         try {
             const user = req.user;
             const { imei, userId } = req.body;
-            
+
             if (!imei || !userId) {
                 return errorResponse(res, 'IMEI and user ID are required', 400);
             }
 
             const vehicleModel = new VehicleModel();
-            
+
             // Check if user has permission to remove access
             if (user.role.name !== 'Super Admin') {
                 const mainUserVehicle = await vehicleModel.getVehicleByImeiWithCompleteData(
-                    imei, 
-                    user.id, 
+                    imei,
+                    user.id,
                     user.role.name
                 );
-                
+
                 if (!mainUserVehicle || !mainUserVehicle.userVehicle?.isMain) {
                     return errorResponse(res, 'Access denied. Only main user or Super Admin can remove access', 403);
                 }
             }
 
             await vehicleModel.removeVehicleAccess(imei, userId);
-            
+
             return successResponse(res, null, 'Vehicle access removed successfully');
         } catch (error) {
             console.error('Error in removeVehicleAccess:', error);
