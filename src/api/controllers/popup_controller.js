@@ -172,22 +172,34 @@ class PopupController {
             if (user.role.name !== 'Super Admin') {
                 return errorResponse(res, 'Access denied. Only Super Admin can delete popups', 403);
             }
+            
 
             // Get popup to delete associated image
             const popupModel = new PopupModel();
             const popup = await popupModel.getPopupById(id);
 
-            if (popup && popup.image) {
-                // Delete image file
-                const imagePath = path.join(__dirname, '../../../uploads/popups', popup.image);
-                if (fs.existsSync(imagePath)) {
-                    fs.unlinkSync(imagePath);
-                }
+            if (!popup) {
+                return errorResponse(res, 'Popup not found', 404);
             }
 
-            await popupModel.deletePopup(id);
-
-            return successResponse(res, null, 'Popup deleted successfully');
+            if (popup && popup.image) {
+                try {
+                    const imagePath = path.join(__dirname, '../../../uploads/popups', popup.image);
+                    if (fs.existsSync(imagePath)) {
+                        fs.unlinkSync(imagePath);
+                    }
+                } catch (imageError) {
+                    console.error('Error deleting image file:', imageError);
+                    // Continue with popup deletion even if image deletion fails
+                }
+            }
+            const deleteResult = await popupModel.deletePopup(id);
+        
+            if (deleteResult) {
+                return successResponse(res, { success: true }, 'Popup deleted successfully');
+            } else {
+                return errorResponse(res, 'Failed to delete popup', 500);
+            }
         } catch (error) {
             console.error('Error in deletePopup:', error);
             return errorResponse(res, 'Failed to delete popup', 500);
