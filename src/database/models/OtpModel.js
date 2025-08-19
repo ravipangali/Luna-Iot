@@ -8,13 +8,17 @@ class OtpModel {
                 where: { phone }
             });
 
+            const nepalTime = datetimeService.nepalTimeDate();
+            const nepalExpiryTime = new Date(nepalTime.getTime() + 10 * 60 * 1000); // 10 minutes
+
+
             // Create new OTP
             const otpRecord = await prisma.getClient().otp.create({
                 data: {
                     phone,
                     otp,
-                    expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-                    createdAt: new Date()
+                    expiresAt: nepalExpiryTime,
+                    createdAt: nepalTime
                 }
             });
 
@@ -29,7 +33,7 @@ class OtpModel {
         try {
             // Ensure OTP is treated as string for comparison
             const otpString = String(otp).trim();
-            
+
             const otpRecord = await prisma.getClient().otp.findFirst({
                 where: {
                     phone: phone.trim(),
@@ -39,8 +43,8 @@ class OtpModel {
                     }
                 }
             });
-    
-    
+
+
             return otpRecord;
         } catch (error) {
             console.error('OTP VERIFICATION ERROR', error);
@@ -75,7 +79,7 @@ class OtpModel {
             throw error;
         }
     }
-    
+
 }
 
 module.exports = OtpModel;

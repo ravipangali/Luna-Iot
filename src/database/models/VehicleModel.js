@@ -1,3 +1,4 @@
+const datetimeService = require('../../utils/datetime_service');
 const prisma = require('../prisma')
 const { calculateDistanceFromLocationData } = require('../../utils/distance_service');
 
@@ -6,6 +7,7 @@ class VehicleModel {
     // Create new vehicle with user-vehicle relationship
     async createData(data, userId = null) {
         try {
+            const nepalTime = datetimeService.nepalTimeDate();
             // Validate required fields
             if (!data.imei || !data.name || !data.vehicleNo || !data.vehicleType) {
                 throw new Error('Missing required fields');
@@ -21,8 +23,8 @@ class VehicleModel {
                 mileage: parseFloat(data.mileage) || 0,
                 minimumFuel: parseFloat(data.minimumFuel) || 0,
                 speedLimit: parseInt(data.speedLimit) || 60,
-                createdAt: new Date(),
-                updatedAt: new Date()
+                createdAt: nepalTime,
+                updatedAt: nepalTime
             };
 
             const vehicle = await prisma.getClient().vehicle.create({
@@ -44,6 +46,7 @@ class VehicleModel {
     // Create user-vehicle relationship with ownership logic
     async createUserVehicleRelationship(userId, vehicleId) {
         try {
+            const nepalTime = datetimeService.nepalTimeDate();
             await prisma.getClient().userVehicle.create({
                 data: {
                     userId: userId,
@@ -59,7 +62,7 @@ class VehicleModel {
                     edit: true,
                     shareTracking: true,
                     notification:true,
-                    createdAt: new Date()
+                    createdAt: nepalTime
                 }
             });
         } catch (error) {
@@ -368,6 +371,7 @@ class VehicleModel {
     // NEW: Assign vehicle access to user
     // NEW: Assign vehicle access to user
     async assignVehicleAccessToUser(imei, userId, permissions, assignedByUserId) {
+        const nepalTime = datetimeService.nepalTimeDate();
         imei = imei.toString();
         try {
             // Check if vehicle exists
@@ -418,7 +422,8 @@ class VehicleModel {
                     geofence: permissions.geofence || false,
                     edit: permissions.edit || false,
                     shareTracking: permissions.shareTracking || false,
-                    notification: permissions.notification || false
+                    notification: permissions.notification || false,
+                    createdAt: nepalTime
                     // Remove assignedBy since it's not in the schema
                 },
                 include: {

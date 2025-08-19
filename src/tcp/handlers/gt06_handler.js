@@ -48,6 +48,7 @@ class GT06Handler {
         if (data.event.string === 'status') {
             const battery = this.getBattery(data.voltageLevel);
             const signal = this.getSignal(data.gsmSigStrength);
+            const nepalTime = datetimeService.nepalTimeDate();
             const statusData = {
                 imei: data.imei.toString(),
                 battery: battery,
@@ -80,11 +81,11 @@ class GT06Handler {
             if (shouldSave) {
                 // Save to database and send socket message
                 await statusModel.createData(statusData);
-                socketService.statusUpdateMessage(statusData.imei, statusData.battery, statusData.signal, statusData.ignition, statusData.charging, statusData.relay, new Date().toISOString());
+                socketService.statusUpdateMessage(statusData.imei, statusData.battery, statusData.signal, statusData.ignition, statusData.charging, statusData.relay, nepalTime);
                 socketService.deviceMonitoringMessage('status', data.imei, null, null);
             }
         } else if (data.event.string === 'location') {
-            
+            const nepalTime = datetimeService.nepalTimeDate();
             const locationData = {
                 imei: data.imei.toString(),
                 latitude: data.lat,
@@ -111,7 +112,7 @@ class GT06Handler {
                 // Save to database and send socket message
                 const locationModel = new LocationModel();
                 await locationModel.createData(locationData);
-                socketService.locationUpdateMessage(locationData.imei, locationData.latitude, locationData.longitude, locationData.speed, locationData.course, locationData.satellite, locationData.realTimeGps, new Date().toISOString());
+                socketService.locationUpdateMessage(locationData.imei, locationData.latitude, locationData.longitude, locationData.speed, locationData.course, locationData.satellite, locationData.realTimeGps, nepalTime);
                 socketService.deviceMonitoringMessage('location', data.imei, data.lat, data.lon);
             }
         } else if (data.event.string === 'login') {

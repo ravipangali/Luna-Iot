@@ -1,11 +1,13 @@
 const prisma = require('../prisma')
+const datetimeService = require('../../utils/datetime_service');
 
 class DeviceModel {
 
     // Create new device
     async createData(data) {
         try {
-            const device = await prisma.getClient().device.upsert({
+        const nepalTime = datetimeService.nepalTimeDate();
+        const device = await prisma.getClient().device.upsert({
                 where: { imei: data.imei.toString() },
                 update: {
                     imei: data.imei.toString(),
@@ -14,7 +16,7 @@ class DeviceModel {
                     protocol: data.protocol,
                     iccid: data.iccid,
                     model: data.model,
-                    updatedAt: new Date()
+                    updatedAt: nepalTime
                 },
                 create: {
                     imei: data.imei.toString(),
@@ -23,8 +25,8 @@ class DeviceModel {
                     protocol: data.protocol,
                     iccid: data.iccid,
                     model: data.model,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
+                    createdAt: nepalTime,
+                    updatedAt: nepalTime
                 },
             });
             return device;

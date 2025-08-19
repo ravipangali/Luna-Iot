@@ -1,15 +1,13 @@
 const prisma = require('../prisma')
-const moment = require('moment-timezone');
+const datetimeService = require('../../utils/datetime_service');
+
 
 class LocationModel {
 
     // Create new location
     async createData(data) {
         try {
-            // Get current UTC time and add 5 hours 45 minutes for Nepal timezone
-            const now = new Date();
-            // Add 5 hours and 45 minutes (345 minutes) to current UTC time
-            const nepalTime = new Date(now.getTime() + (5 * 60 + 45) * 60000);
+            const nepalTime = datetimeService.nepalTimeDate();
 
             const location = await prisma.getClient().location.create({
                 data: {
@@ -23,7 +21,7 @@ class LocationModel {
                     createdAt: nepalTime
                 }
             });
-            
+
             // Then update odometer
             await this.updateVehicleOdometer(data.imei, data.latitude, data.longitude);
 
@@ -444,6 +442,7 @@ class LocationModel {
         }
     }
 
+    
 }
 
 module.exports = LocationModel

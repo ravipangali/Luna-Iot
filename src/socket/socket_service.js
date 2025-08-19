@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const datetimeService = require('../utils/datetime_service');
 
 class SocketService {
     constructor() {
@@ -91,6 +92,7 @@ class SocketService {
     }
 
     statusUpdateMessage(imei, battery, signal, ignition, charging, relay, created_at) {
+        const nepalTime = datetimeService.nepalTimeDate();
         if (this.io) {
             // Add validation
             if (!imei) {
@@ -106,7 +108,7 @@ class SocketService {
                 ignition: ignition,
                 charging: charging,
                 relay: relay,
-                createdAt: created_at
+                createdAt: nepalTime
             }
             this._broadcastToAllWorkers('status_update', data);
         } else {
@@ -115,6 +117,7 @@ class SocketService {
     }
 
     locationUpdateMessage(imei, latitude, longitude, speed, course, satellite, realTimeGps, created_at) {
+        const nepalTime = datetimeService.nepalTimeDate();
         if (this.io) {
             var data = {
                 imei: imei,
@@ -124,7 +127,7 @@ class SocketService {
                 course: course,
                 satellite: satellite,
                 realTimeGps: realTimeGps,
-                createdAt: created_at || new Date().toISOString(),
+                createdAt: nepalTime
             }
             this._broadcastToAllWorkers('location_update', data);
         }

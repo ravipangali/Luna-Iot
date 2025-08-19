@@ -1,10 +1,12 @@
 const prisma = require('../prisma')
+const datetimeService = require('../../utils/datetime_service');
 
 class StatusModel {
 
     // Create new status
     async createData(data) {
         try {
+            const nepalTime = datetimeService.nepalTimeDate();
             const status = await prisma.getClient().status.create({
                 data: {
                     imei: data.imei.toString(),
@@ -13,6 +15,7 @@ class StatusModel {
                     ignition: data.ignition,
                     charging: data.charging,
                     relay: data.relay,
+                    createdAt: nepalTime
                 }
             });
             // If ignition is off, create a new location record with speed = 0
@@ -36,6 +39,7 @@ class StatusModel {
             });
 
             if (latestLocation) {
+                const nepalTime = datetimeService.nepalTimeDate();
                 // Create new location record with same data but speed = 0
                 const newLocation = await prisma.getClient().location.create({
                     data: {
@@ -46,7 +50,7 @@ class StatusModel {
                         course: latestLocation.course,
                         realTimeGps: latestLocation.realTimeGps,
                         satellite: latestLocation.satellite,
-                        createdAt: new Date()
+                        createdAt: nepalTime
                     }
                 });
 
@@ -67,12 +71,12 @@ class StatusModel {
         imei = imei.toString();
         try {
             const status = await prisma.getClient().status.findFirst({
-                where: {imei},
-                orderBy: {createdAt: 'desc'}
+                where: { imei },
+                orderBy: { createdAt: 'desc' }
             });
             return status;
         } catch (error) {
-            console.error('ERROR FETCHING LATEST STATUS: ',error);
+            console.error('ERROR FETCHING LATEST STATUS: ', error);
             throw error;
         }
     }
@@ -85,13 +89,13 @@ class StatusModel {
 
             const result = await prisma.getClient().status.deleteMany({
                 where: {
-                    createdAt: {lt: cutoffDate}
+                    createdAt: { lt: cutoffDate }
                 }
             });
             return result.count;
         }
         catch (error) {
-            console.error('ERROR ON DELETEING OLD STATUS: ',error);
+            console.error('ERROR ON DELETEING OLD STATUS: ', error);
             throw error;
         }
     }
@@ -113,7 +117,7 @@ class StatusModel {
                 }
             });
         } catch (error) {
-            console.error('ERROR FETCHING STATUS BY DATE RANGE: ',error);
+            console.error('ERROR FETCHING STATUS BY DATE RANGE: ', error);
             throw error;
         }
     }
@@ -122,7 +126,7 @@ class StatusModel {
     async getDataByImei(imei) {
         imei = imei.toString();
         try {
-            const status = await prisma.getClient().status.findMany({where: {imei}, orderBy: {createdAt: 'asc'}});
+            const status = await prisma.getClient().status.findMany({ where: { imei }, orderBy: { createdAt: 'asc' } });
             return status;
         } catch (error) {
             console.error('STATUS FETCH ERROR', error);

@@ -1,17 +1,19 @@
 const prisma = require('../prisma')
+const datetimeService = require('../../utils/datetime_service');
 
 class PopupModel {
     // Create new popup
     async createPopup(data) {
         try {
-            const popup = await prisma.getClient().popup.create({
+        const nepalTime = datetimeService.nepalTimeDate();
+        const popup = await prisma.getClient().popup.create({
                 data: {
                     title: data.title,
                     message: data.message,
                     image: data.image || null,
                     isActive: data.isActive !== undefined ? data.isActive : true,
-                    createdAt: new Date(),
-                    updatedAt: new Date()
+                    createdAt: nepalTime,
+                    updatedAt: nepalTime
                 }
             });
             return popup;
@@ -61,6 +63,7 @@ class PopupModel {
 
     // Update popup
     async updatePopup(id, data) {
+        const nepalTime = datetimeService.nepalTimeDate();
         try {
             const popup = await prisma.getClient().popup.update({
                 where: { id: parseInt(id) },
@@ -69,7 +72,7 @@ class PopupModel {
                     message: data.message,
                     image: data.image,
                     isActive: data.isActive,
-                    updatedAt: new Date()
+                    updatedAt: nepalTime
                 }
             });
             return popup;

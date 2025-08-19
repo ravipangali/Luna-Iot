@@ -1,17 +1,19 @@
 const prisma = require('../prisma');
+const datetimeService = require('../../utils/datetime_service');
 
 class GeofenceModel {
     // Create new geofence
     async createGeofence(data) {
         try {
-            const geofence = await prisma.getClient().geofence.create({
+        const nepalTime = datetimeService.nepalTimeDate();
+        const geofence = await prisma.getClient().geofence.create({
                 data: {
                     title: data.title,
                     type: data.type,
                     boundary: data.boundary, // Prisma will automatically convert to JSON
                     // Remove createdBy field - it doesn't exist in schema
-                    createdAt: new Date(),
-                    updatedAt: new Date()
+                    createdAt: nepalTime,
+                    updatedAt: nepalTime
                 }
             });
     
@@ -162,6 +164,7 @@ async assignGeofenceToUsers(geofenceId, userIds) {
 
     // Update geofence
     async updateGeofence(id, data) {
+        const nepalTime = datetimeService.nepalTimeDate();
         try {
             const allowedFields = ['title', 'type', 'boundary'];
             const updateData = {};
@@ -176,7 +179,7 @@ async assignGeofenceToUsers(geofenceId, userIds) {
                 return null;
             }
 
-            updateData.updatedAt = new Date();
+            updateData.updatedAt = nepalTime;
 
             return await prisma.getClient().geofence.update({
                 where: { id: parseInt(id) },
