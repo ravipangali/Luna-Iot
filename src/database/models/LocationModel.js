@@ -6,21 +6,6 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
-            // Get current Nepal time
-            const nepalMoment = moment().tz('Asia/Kathmandu');
-            
-            // Create a proper DateTime object that preserves Nepal time
-            // Use moment's toDate() method which creates a Date object in the correct timezone
-            const nepalDateTime = nepalMoment.toDate();
-            
-            console.log('=== LOCATION MODEL DEBUG ===');
-            console.log('Current UTC time:', new Date().toISOString());
-            console.log('Current Nepal time:', nepalMoment.format('YYYY-MM-DD HH:mm:ss'));
-            console.log('Nepal DateTime object:', nepalDateTime);
-            console.log('Nepal DateTime ISO:', nepalDateTime.toISOString());
-            console.log('===========================');
-            
-            
             const location = await prisma.getClient().location.create({
                 data: {
                     imei: data.imei.toString(),
@@ -30,7 +15,6 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
-                    createdAt: nepalDateTime
                 }
             });
 
