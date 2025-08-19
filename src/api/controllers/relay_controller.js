@@ -13,13 +13,17 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
+            // Use 'allAccess' or 'edit' permission instead of 'relay'
             const vehicle = await prisma.getClient().vehicle.findFirst({
                 where: {
                     imei: imei.toString(),
                     userVehicles: {
                         some: {
                             userId: user.id,
-                            relay: true // Check relay permission
+                            OR: [
+                                { allAccess: true },
+                                { edit: true }
+                            ]
                         }
                     }
                 }
@@ -62,13 +66,17 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
+            // Use 'allAccess' or 'edit' permission instead of 'relay'
             const vehicle = await prisma.getClient().vehicle.findFirst({
                 where: {
                     imei: imei.toString(),
                     userVehicles: {
                         some: {
                             userId: user.id,
-                            relay: true // Check relay permission
+                            OR: [
+                                { allAccess: true },
+                                { edit: true }
+                            ]
                         }
                     }
                 }
@@ -107,13 +115,17 @@ class RelayController {
             const user = req.user;
 
             // Check if user has access to this vehicle
+            // Use 'allAccess' or 'edit' permission instead of 'relay'
             const vehicle = await prisma.getClient().vehicle.findFirst({
                 where: {
                     imei: imei.toString(),
                     userVehicles: {
                         some: {
                             userId: user.id,
-                            relay: true
+                            OR: [
+                                { allAccess: true },
+                                { edit: true }
+                            ]
                         }
                     }
                 }
