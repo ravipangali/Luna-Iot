@@ -88,11 +88,31 @@ class GT06Handler {
             let createdAt;
 
             console.log('=== TIMEZONE DEBUG START ===');
+            console.log('Device data keys:', Object.keys(data));
+            console.log('Device fixTime:', data.fixTime);
+            console.log('Device fixTimestamp:', data.fixTimestamp);
+            console.log('Device fixTime type:', typeof data.fixTime);
+            console.log('Device fixTimestamp type:', typeof data.fixTimestamp);
             console.log('Current UTC time:', new Date().toISOString());
             console.log('Current Nepal time string:', datetimeService.getCurrentNepalTimeString());
 
-            createdAt = datetimeService.getCurrentNepalTime();
-
+            if (data.fixTime && data.fixTime !== '') {
+                // Use device's fixTime if available
+                createdAt = datetimeService.convertDeviceTimeToNepal(data.fixTime);
+                console.log('✅ Using device fixTime:', data.fixTime);
+                console.log('✅ Converted to Nepal Date:', createdAt);
+                console.log('✅ Formatted Nepal time:', datetimeService.formatNepalTime(createdAt));
+            } else if (data.fixTimestamp && data.fixTimestamp !== 0) {
+                // Use device's fixTimestamp if available
+                createdAt = datetimeService.convertDeviceTimeToNepal(data.fixTimestamp);
+                console.log('✅ Using device fixTimestamp:', data.fixTimestamp);
+                console.log('✅ Converted to Nepal Date:', createdAt);
+                console.log('✅ Formatted Nepal time:', datetimeService.formatNepalTime(createdAt));
+            } else {
+                // Fallback to current Nepal time
+                createdAt = datetimeService.getCurrentNepalTime();
+                console.log('⚠️ No device time, using current Nepal time:', datetimeService.formatNepalTime(createdAt));
+            }
 
             console.log('Final createdAt value:', createdAt);
             console.log('Final createdAt type:', typeof createdAt);
