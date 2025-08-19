@@ -4,6 +4,7 @@ const StatusModel = require('../../database/models/StatusModel');
 const LocationModel = require('../../database/models/LocationModel');
 const socketService = require('../../socket/socket_service');
 const GT06NotificationService = require('../../utils/gt06_notification_service');
+const datetimeService = require('../../utils/datetime_service');
 
 class GT06Handler {
 
@@ -38,8 +39,6 @@ class GT06Handler {
     async handleData(data, socket) {
         var device = new DeviceModel();
         device = await device.getDataByImei(data.imei);
-
-        console.log('DATA: ',data);
 
         if (device === null) {
             socketService.deviceMonitoringMessage('imei_not_registered', data.imei, null, null);
@@ -90,10 +89,10 @@ class GT06Handler {
 
             if (data.fixTime) {
                 // Use fixTime if available (ISO string format)
-                createdAt = new Date(data.fixTime);
+                createdAt = datetimeService.toNepalTime(data.fixTime);
             } else if (data.fixTimestamp) {
                 // Use fixTimestamp if available (Unix timestamp in seconds)
-                createdAt = new Date(data.fixTimestamp * 1000);
+                createdAt = datetimeService.toNepalTime(data.fixTimestamp);
             }
             const locationData = {
                 imei: data.imei.toString(),
