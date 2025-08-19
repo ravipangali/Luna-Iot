@@ -248,7 +248,7 @@ model Status {
   ignition  Boolean
   charging  Boolean
   relay     Boolean
-  createdAt DateTime @default(dbgenerated("get_nepal_timestamp()")) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([imei])
   @@index([createdAt])
@@ -384,6 +384,7 @@ model GeofenceUser {
   @@unique([geofenceId, userId])
   @@map("geofence_users")
 }
+
 
 model Popup {
   id        Int      @id @default(autoincrement())

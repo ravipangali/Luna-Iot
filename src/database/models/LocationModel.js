@@ -6,6 +6,10 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
+            // Use environment variable for timezone or default to Nepal
+            const timezone = process.env.TIMEZONE || 'Asia/Kathmandu';
+            const currentTime = moment().tz(timezone).format('YYYY-MM-DD HH:mm:ss');
+            console.log('DATE: ',new Date(currentTime))
             const location = await prisma.getClient().location.create({
                 data: {
                     imei: data.imei.toString(),
@@ -15,6 +19,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
+                    createdAt: new Date(currentTime)
                 }
             });
 
