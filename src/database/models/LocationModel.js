@@ -29,7 +29,7 @@ class LocationModel {
                     ${data.course}, 
                     ${data.realTimeGps}, 
                     ${data.satellite || 0}, 
-                    DATE_ADD(NOW(), INTERVAL 5 HOUR 45 MINUTE)
+                    DATE_ADD(NOW(), INTERVAL 345 MINUTE)
                 )
             `;
 
