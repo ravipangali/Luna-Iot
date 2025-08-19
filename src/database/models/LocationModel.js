@@ -6,7 +6,25 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
-            const nepalTime = moment().tz('Asia/Kathmandu').toDate();
+            // Get current Nepal time and create Date object with Nepal components
+            const nepalMoment = moment().tz('Asia/Kathmandu');
+            
+            // Create Date object with Nepal time components
+            const nepalDate = new Date();
+            nepalDate.setFullYear(nepalMoment.year());
+            nepalDate.setMonth(nepalMoment.month());
+            nepalDate.setDate(nepalMoment.date());
+            nepalDate.setHours(nepalMoment.hour());
+            nepalDate.setMinutes(nepalMoment.minute());
+            nepalDate.setSeconds(nepalMoment.second());
+            nepalDate.setMilliseconds(nepalMoment.millisecond());
+            
+            console.log('=== LOCATION MODEL DEBUG ===');
+            console.log('Current UTC time:', new Date().toISOString());
+            console.log('Nepal moment:', nepalMoment.format('YYYY-MM-DD HH:mm:ss'));
+            console.log('Nepal Date object:', nepalDate);
+            console.log('Nepal Date ISO:', nepalDate.toISOString());
+            console.log('===========================');
             const location = await prisma.getClient().location.create({
                 data: {
                     imei: data.imei.toString(),
@@ -16,7 +34,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
-                    createdAt: nepalTime
+                    createdAt: nepalDate
                 }
             });
 
