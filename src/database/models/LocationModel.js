@@ -6,22 +6,34 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
-            // Use environment variable for timezone or default to Nepal
-            const timezone = process.env.TIMEZONE || 'Asia/Kathmandu';
-            const currentTime = moment().tz(timezone).format('YYYY-MM-DD HH:mm:ss');
-            console.log('DATE: ',new Date(currentTime))
-            const location = await prisma.getClient().location.create({
-                data: {
-                    imei: data.imei.toString(),
-                    latitude: data.latitude,
-                    longitude: data.longitude,
-                    speed: data.speed,
-                    course: data.course,
-                    realTimeGps: data.realTimeGps,
-                    satellite: data.satellite || 0,
-                    createdAt: new Date(currentTime)
-                }
-            });
+            // const location = await prisma.getClient().location.create({
+            //     data: {
+            //         imei: data.imei.toString(),
+            //         latitude: data.latitude,
+            //         longitude: data.longitude,
+            //         speed: data.speed,
+            //         course: data.course,
+            //         realTimeGps: data.realTimeGps,
+            //         satellite: data.satellite || 0,
+            //         createdAt: new Date(currentTime)
+            //     }
+            // });
+            // Use raw SQL to insert with Nepal time
+            const location = await prisma.getClient().$executeRaw`
+            INSERT INTO locations (imei, latitude, longitude, speed, course, real_time_gps, satellite, created_at)
+            VALUES (
+                ${data.imei.toString()}, 
+                ${data.latitude}, 
+                ${data.longitude}, 
+                ${data.speed}, 
+                ${data.course}, 
+                ${data.realTimeGps}, 
+                ${data.satellite || 0}, 
+                NOW() + INTERVAL 5 HOUR 45 MINUTE
+            )
+            `;
+
+            console.log('✅ Location saved with Nepal time using raw SQL');
 
             // Then update odometer
             await this.updateVehicleOdometer(data.imei, data.latitude, data.longitude);
@@ -385,63 +397,63 @@ class LocationModel {
 
 
     // Update vehicle odometer based on new location
-async updateVehicleOdometer(imei, newLat, newLon) {
-    try {
-        // Get the previous location for this vehicle
-        const previousLocation = await prisma.getClient().location.findFirst({
-            where: { imei: imei.toString() },
-            orderBy: { createdAt: 'desc' },
-            skip: 1 // Skip the current location we just created
-        });
+    async updateVehicleOdometer(imei, newLat, newLon) {
+        try {
+            // Get the previous location for this vehicle
+            const previousLocation = await prisma.getClient().location.findFirst({
+                where: { imei: imei.toString() },
+                orderBy: { createdAt: 'desc' },
+                skip: 1 // Skip the current location we just created
+            });
 
-        if (!previousLocation) {
-            console.log(`First location for vehicle ${imei}, odometer remains 0`);
-            return; // First location, no distance to add
-        }
-
-        // Calculate distance between previous and current location
-        const distance = this.calculateDistance(
-            previousLocation.latitude,
-            previousLocation.longitude,
-            newLat,
-            newLon
-        );
-
-        // Filter out very small distances (GPS noise)
-        if (distance < 0.001) { // Less than 1 meter
-            console.log(`Distance too small (${distance} km), skipping odometer update`);
-            return;
-        }
-
-        // Get current vehicle odometer
-        const vehicle = await prisma.getClient().vehicle.findUnique({
-            where: { imei: imei.toString() },
-            select: { odometer: true }
-        });
-
-        if (!vehicle) {
-            console.log(`Vehicle ${imei} not found, skipping odometer update`);
-            return;
-        }
-
-        // Calculate new odometer value
-        const currentOdometer = parseFloat(vehicle.odometer) || 0;
-        const newOdometer = currentOdometer + distance;
-
-        // Update vehicle odometer
-        await prisma.getClient().vehicle.update({
-            where: { imei: imei.toString() },
-            data: {
-                odometer: Math.round(newOdometer * 100) / 100,
+            if (!previousLocation) {
+                console.log(`First location for vehicle ${imei}, odometer remains 0`);
+                return; // First location, no distance to add
             }
-        });
+
+            // Calculate distance between previous and current location
+            const distance = this.calculateDistance(
+                previousLocation.latitude,
+                previousLocation.longitude,
+                newLat,
+                newLon
+            );
+
+            // Filter out very small distances (GPS noise)
+            if (distance < 0.001) { // Less than 1 meter
+                console.log(`Distance too small (${distance} km), skipping odometer update`);
+                return;
+            }
+
+            // Get current vehicle odometer
+            const vehicle = await prisma.getClient().vehicle.findUnique({
+                where: { imei: imei.toString() },
+                select: { odometer: true }
+            });
+
+            if (!vehicle) {
+                console.log(`Vehicle ${imei} not found, skipping odometer update`);
+                return;
+            }
+
+            // Calculate new odometer value
+            const currentOdometer = parseFloat(vehicle.odometer) || 0;
+            const newOdometer = currentOdometer + distance;
+
+            // Update vehicle odometer
+            await prisma.getClient().vehicle.update({
+                where: { imei: imei.toString() },
+                data: {
+                    odometer: Math.round(newOdometer * 100) / 100,
+                }
+            });
 
 
-    } catch (error) {
-        console.error('ERROR UPDATING ODOMETER:', error);
-        // Don't throw error - odometer update failure shouldn't break location save
+        } catch (error) {
+            console.error('ERROR UPDATING ODOMETER:', error);
+            // Don't throw error - odometer update failure shouldn't break location save
+        }
     }
-}
 
 }
 
