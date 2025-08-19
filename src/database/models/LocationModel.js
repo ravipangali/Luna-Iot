@@ -1,4 +1,5 @@
 const prisma = require('../prisma')
+const moment = require('moment-timezone');
 
 class LocationModel {
 
@@ -14,6 +15,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
+                    createdAt: nepalTime
                 }
             });
 
