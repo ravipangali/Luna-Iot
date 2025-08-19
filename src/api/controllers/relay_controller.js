@@ -13,7 +13,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            // Use 'allAccess' or 'edit' permission instead of 'relay'
+            // Use 'allAccess' or 'edit' permission
             const vehicle = await prisma.getClient().vehicle.findFirst({
                 where: {
                     imei: imei.toString(),
@@ -35,11 +35,11 @@ class RelayController {
 
             // Send relay ON command to device
             const command = "HFYD#";
-            const result = await this.sendRelayCommand(imei, command);
+            const result = await RelayController.sendRelayCommand(imei, command);
 
             if (result.success) {
                 // Update relay status in database
-                await this.updateRelayStatus(imei, true);
+                await RelayController.updateRelayStatus(imei, true);
                 
                 return successResponse(res, { 
                     imei: imei,
@@ -66,7 +66,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            // Use 'allAccess' or 'edit' permission instead of 'relay'
+            // Use 'allAccess' or 'edit' permission
             const vehicle = await prisma.getClient().vehicle.findFirst({
                 where: {
                     imei: imei.toString(),
@@ -88,11 +88,11 @@ class RelayController {
 
             // Send relay OFF command to device
             const command = "DYD#";
-            const result = await this.sendRelayCommand(imei, command);
+            const result = await RelayController.sendRelayCommand(imei, command);
 
             if (result.success) {
                 // Update relay status in database
-                await this.updateRelayStatus(imei, false);
+                await RelayController.updateRelayStatus(imei, false);
                 
                 return successResponse(res, { 
                     imei: imei,
@@ -115,7 +115,7 @@ class RelayController {
             const user = req.user;
 
             // Check if user has access to this vehicle
-            // Use 'allAccess' or 'edit' permission instead of 'relay'
+            // Use 'allAccess' or 'edit' permission
             const vehicle = await prisma.getClient().vehicle.findFirst({
                 where: {
                     imei: imei.toString(),
