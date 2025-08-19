@@ -83,6 +83,43 @@ class DateTimeService {
     getCurrentNepalTimeString() {
         return moment().tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
     }
+
+    /**
+     * Get current Nepal time as string (for database storage)
+     * This preserves the exact Nepal time
+     * @returns {string} Current Nepal time as string
+     */
+    getCurrentNepalTimeForDB() {
+        return moment().tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
+    }
+
+    /**
+     * Convert device time to Nepal time string for database
+     * @param {string|number} deviceTime - Device fixTime or fixTimestamp
+     * @returns {string} Nepal time as string
+     */
+    convertDeviceTimeToNepalString(deviceTime) {
+        try {
+            let momentObj;
+            
+            if (typeof deviceTime === 'string') {
+                // Device fixTime (ISO string)
+                momentObj = moment(deviceTime);
+            } else if (typeof deviceTime === 'number') {
+                // Device fixTimestamp (Unix timestamp in seconds)
+                momentObj = moment.unix(deviceTime);
+            } else {
+                throw new Error('Invalid device time format');
+            }
+
+            // Convert to Nepal timezone and return as string
+            return momentObj.tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
+        } catch (error) {
+            console.error('Error converting device time to Nepal time string:', error);
+            // Return current Nepal time as fallback
+            return this.getCurrentNepalTimeForDB();
+        }
+    }
 }
 
 module.exports = new DateTimeService();
