@@ -86,7 +86,7 @@ class GT06Handler {
         } else if (data.event.string === 'location') {
             // Extract fix time from device data
             let createdAt = new Date();
-            createdAt = datetimeService.toNepalTimeISO(createdAt);
+            createdAt = datetimeService.getCurrentNepalTimeISO();
 
             // if (data.fixTime) {
             //     // Use fixTime if available (ISO string format)
