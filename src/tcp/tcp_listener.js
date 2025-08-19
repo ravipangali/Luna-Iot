@@ -1,6 +1,7 @@
 const net = require('net')
 const tcpHandler = require('./handlers/handler')
 const socketService = require('../socket/socket_service');
+const tcpService = require('./tcp_service');
 
 class TCPListener {
     constructor() {
@@ -14,25 +15,35 @@ class TCPListener {
             socketService.deviceMonitoringMessage('connected', null, null, null);
             
             // Store connection info
-            this.connections.set(connectionId, {
+            const connectionData = {
                 socket: socket,
                 workerId: process.pid,
                 connectedAt: new Date(),
                 remoteAddress: socket.remoteAddress,
                 remotePort: socket.remotePort
-            });
+            };
+
+            this.connections.set(connectionId, connectionData);
+            tcpService.storeConnection(connectionId, connectionData);
 
             // Handle incoming data
             socket.on('data', (data) => {
                 // Data handling
                 let datahandler = new tcpHandler.DataHandler();
                 datahandler.handleData(data, socket);
+
+                 // Update device IMEI in connection data
+                 if (socket.deviceImei) {
+                    connectionData.deviceImei = socket.deviceImei;
+                    tcpService.storeConnection(connectionId, connectionData);
+                }
             });
 
             // Handle connection close
             socket.on('close', () => {
                 socketService.deviceMonitoringMessage('disconnected', null, null, null);
                 this.connections.delete(connectionId);
+                tcpService.removeConnection(connectionId);
             });
             
             // Handle errors
@@ -40,6 +51,7 @@ class TCPListener {
                 socketService.deviceMonitoringMessage('disconnected', null, null, null);
                 console.error(`${new Date().toISOString} => CLIENT ERROR =>`, err.message);
                 this.connections.delete(connectionId);
+                tcpService.removeConnection(connectionId);
             });
         });
 
