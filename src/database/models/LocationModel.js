@@ -7,13 +7,15 @@ class LocationModel {
     async createData(data) {
         try {
              // Get current Nepal time as string to preserve exact time
-             const nepalTimeString = moment().tz('Asia/Kathmandu').format('YYYY-MM-DD HH:mm:ss');
+             const nepalMoment = moment().tz('Asia/Kathmandu');
+            const nepalTimeISO = nepalMoment.toISOString();
             
-             console.log('=== LOCATION MODEL DEBUG ===');
-             console.log('Current UTC time:', new Date().toISOString());
-             console.log('Current Nepal time string:', nepalTimeString);
-             console.log('Nepal time type:', typeof nepalTimeString);
-             console.log('===========================');
+            console.log('=== LOCATION MODEL DEBUG ===');
+            console.log('Current UTC time:', new Date().toISOString());
+            console.log('Current Nepal time:', nepalMoment.format('YYYY-MM-DD HH:mm:ss'));
+            console.log('Nepal time ISO:', nepalTimeISO);
+            console.log('Nepal time type:', typeof nepalTimeISO);
+            console.log('===========================');
             
             const location = await prisma.getClient().location.create({
                 data: {
@@ -24,7 +26,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
-                    createdAt: nepalTimeString
+                    createdAt: nepalTimeISO
                 }
             });
 
