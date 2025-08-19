@@ -86,14 +86,15 @@ class GT06Handler {
         } else if (data.event.string === 'location') {
             // Extract fix time from device data
             let createdAt = new Date();
+            createdAt = datetimeService.toNepalTimeISO(createdAt);
 
-            if (data.fixTime) {
-                // Use fixTime if available (ISO string format)
-                createdAt = datetimeService.toNepalTimeISO(data.fixTime);
-            } else if (data.fixTimestamp) {
-                // Use fixTimestamp if available (Unix timestamp in seconds)
-                createdAt = datetimeService.toNepalTimeISO(data.fixTimestamp);
-            }
+            // if (data.fixTime) {
+            //     // Use fixTime if available (ISO string format)
+            //     createdAt = datetimeService.toNepalTimeISO(data.fixTime);
+            // } else if (data.fixTimestamp) {
+            //     // Use fixTimestamp if available (Unix timestamp in seconds)
+            //     createdAt = datetimeService.toNepalTimeISO(data.fixTimestamp);
+            // }
             const locationData = {
                 imei: data.imei.toString(),
                 latitude: data.lat,
