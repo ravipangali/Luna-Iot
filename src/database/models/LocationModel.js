@@ -20,17 +20,17 @@ class LocationModel {
             // });
             // Use raw SQL to insert with Nepal time
             const location = await prisma.getClient().$executeRaw`
-            INSERT INTO locations (imei, latitude, longitude, speed, course, real_time_gps, satellite, created_at)
-            VALUES (
-                ${data.imei.toString()}, 
-                ${data.latitude}, 
-                ${data.longitude}, 
-                ${data.speed}, 
-                ${data.course}, 
-                ${data.realTimeGps}, 
-                ${data.satellite || 0}, 
-                NOW() + INTERVAL 5 HOUR 45 MINUTE
-            )
+                INSERT INTO locations (imei, latitude, longitude, speed, course, real_time_gps, satellite, created_at)
+                VALUES (
+                    ${data.imei.toString()}, 
+                    ${data.latitude}, 
+                    ${data.longitude}, 
+                    ${data.speed}, 
+                    ${data.course}, 
+                    ${data.realTimeGps}, 
+                    ${data.satellite || 0}, 
+                    DATE_ADD(NOW(), INTERVAL 5 HOUR 45 MINUTE)
+                )
             `;
 
             console.log('✅ Location saved with Nepal time using raw SQL');
