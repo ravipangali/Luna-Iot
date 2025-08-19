@@ -16,8 +16,8 @@ class DateTimeService {
             let momentObj;
             
             if (typeof deviceTime === 'string') {
-                // Device fixTime (ISO string)
-                momentObj = moment(deviceTime);
+                // Device fixTime (ISO string) - treat as UTC
+                momentObj = moment.utc(deviceTime);
             } else if (typeof deviceTime === 'number') {
                 // Device fixTimestamp (Unix timestamp in seconds)
                 momentObj = moment.unix(deviceTime);
@@ -25,9 +25,20 @@ class DateTimeService {
                 throw new Error('Invalid device time format');
             }
 
-            // Convert to Nepal timezone and return as Date object
+            // Convert to Nepal timezone
             const nepalMoment = momentObj.tz(this.nepalTimezone);
-            return nepalMoment.toDate();
+            
+            // Create a new Date object with the Nepal time components
+            const nepalDate = new Date();
+            nepalDate.setFullYear(nepalMoment.year());
+            nepalDate.setMonth(nepalMoment.month());
+            nepalDate.setDate(nepalMoment.date());
+            nepalDate.setHours(nepalMoment.hour());
+            nepalDate.setMinutes(nepalMoment.minute());
+            nepalDate.setSeconds(nepalMoment.second());
+            nepalDate.setMilliseconds(nepalMoment.millisecond());
+            
+            return nepalDate;
         } catch (error) {
             console.error('Error converting device time to Nepal time:', error);
             // Return current Nepal time as fallback
@@ -40,7 +51,19 @@ class DateTimeService {
      * @returns {Date} Current time in Nepal timezone
      */
     getCurrentNepalTime() {
-        return moment().tz(this.nepalTimezone).toDate();
+        const nepalMoment = moment().tz(this.nepalTimezone);
+        
+        // Create a new Date object with the Nepal time components
+        const nepalDate = new Date();
+        nepalDate.setFullYear(nepalMoment.year());
+        nepalDate.setMonth(nepalMoment.month());
+        nepalDate.setDate(nepalMoment.date());
+        nepalDate.setHours(nepalMoment.hour());
+        nepalDate.setMinutes(nepalMoment.minute());
+        nepalDate.setSeconds(nepalMoment.second());
+        nepalDate.setMilliseconds(nepalMoment.millisecond());
+        
+        return nepalDate;
     }
 
     /**
