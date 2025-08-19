@@ -85,22 +85,20 @@ class GT06Handler {
             }
         } else if (data.event.string === 'location') {
             // Extract fix time from device data
-            let createdAt = new Date();
+            let createdAt;
 
             console.log('=== TIMEZONE DEBUG START ===');
-            console.log('Device data:', JSON.stringify(data, null, 2));
-            console.log('Device fixTime:', data.fixTime);
-            console.log('Device fixTimestamp:', data.fixTimestamp);
             console.log('Current UTC time:', new Date().toISOString());
-            console.log('Current Nepal time string:', datetimeService.getCurrentNepalTimeForDB());
+            console.log('Current Nepal time string:', datetimeService.getCurrentNepalTimeString());
 
+            createdAt = datetimeService.getCurrentNepalTime();
 
-            createdAt = datetimeService.getCurrentNepalTimeForDB();
-            console.log('⚠️ No device time, using current Nepal time:', createdAt);
 
             console.log('Final createdAt value:', createdAt);
             console.log('Final createdAt type:', typeof createdAt);
+            console.log('Final createdAt instanceof Date:', createdAt instanceof Date);
             console.log('=== TIMEZONE DEBUG END ===');
+
             const locationData = {
                 imei: data.imei.toString(),
                 latitude: data.lat,

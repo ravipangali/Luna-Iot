@@ -6,29 +6,8 @@ class DateTimeService {
     }
 
     /**
-     * Get current Nepal time as Date object
-     * This ensures the Nepal timezone is preserved
-     * @returns {Date} Current time in Nepal timezone
-     */
-    getCurrentNepalTime() {
-        // Get current time in Nepal timezone
-        const nepalMoment = moment().tz(this.nepalTimezone);
-        
-        // Create a new Date object with the Nepal time components
-        const nepalDate = new Date();
-        nepalDate.setFullYear(nepalMoment.year());
-        nepalDate.setMonth(nepalMoment.month());
-        nepalDate.setDate(nepalMoment.date());
-        nepalDate.setHours(nepalMoment.hour());
-        nepalDate.setMinutes(nepalMoment.minute());
-        nepalDate.setSeconds(nepalMoment.second());
-        nepalDate.setMilliseconds(nepalMoment.millisecond());
-        
-        return nepalDate;
-    }
-
-    /**
-     * Convert device timestamp to Nepal timezone
+     * Convert device timestamp to Nepal timezone and return as Date object
+     * This ensures the Nepal timezone is preserved when saving to database
      * @param {string|number} deviceTime - Device fixTime or fixTimestamp
      * @returns {Date} Date object in Nepal timezone
      */
@@ -46,20 +25,9 @@ class DateTimeService {
                 throw new Error('Invalid device time format');
             }
 
-            // Convert to Nepal timezone
+            // Convert to Nepal timezone and return as Date object
             const nepalMoment = momentObj.tz(this.nepalTimezone);
-            
-            // Create Date object with Nepal time components
-            const nepalDate = new Date();
-            nepalDate.setFullYear(nepalMoment.year());
-            nepalDate.setMonth(nepalMoment.month());
-            nepalDate.setDate(nepalMoment.date());
-            nepalDate.setHours(nepalMoment.hour());
-            nepalDate.setMinutes(nepalMoment.minute());
-            nepalDate.setSeconds(nepalMoment.second());
-            nepalDate.setMilliseconds(nepalMoment.millisecond());
-            
-            return nepalDate;
+            return nepalMoment.toDate();
         } catch (error) {
             console.error('Error converting device time to Nepal time:', error);
             // Return current Nepal time as fallback
@@ -68,7 +36,15 @@ class DateTimeService {
     }
 
     /**
-     * Format Nepal time to readable string
+     * Get current Nepal time as Date object
+     * @returns {Date} Current time in Nepal timezone
+     */
+    getCurrentNepalTime() {
+        return moment().tz(this.nepalTimezone).toDate();
+    }
+
+    /**
+     * Format Nepal time to readable string for debugging
      * @param {Date} date - Date object
      * @returns {string} Formatted string in Nepal timezone
      */
@@ -82,43 +58,6 @@ class DateTimeService {
      */
     getCurrentNepalTimeString() {
         return moment().tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
-    }
-
-    /**
-     * Get current Nepal time as string (for database storage)
-     * This preserves the exact Nepal time
-     * @returns {string} Current Nepal time as string
-     */
-    getCurrentNepalTimeForDB() {
-        return moment().tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
-    }
-
-    /**
-     * Convert device time to Nepal time string for database
-     * @param {string|number} deviceTime - Device fixTime or fixTimestamp
-     * @returns {string} Nepal time as string
-     */
-    convertDeviceTimeToNepalString(deviceTime) {
-        try {
-            let momentObj;
-            
-            if (typeof deviceTime === 'string') {
-                // Device fixTime (ISO string)
-                momentObj = moment(deviceTime);
-            } else if (typeof deviceTime === 'number') {
-                // Device fixTimestamp (Unix timestamp in seconds)
-                momentObj = moment.unix(deviceTime);
-            } else {
-                throw new Error('Invalid device time format');
-            }
-
-            // Convert to Nepal timezone and return as string
-            return momentObj.tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
-        } catch (error) {
-            console.error('Error converting device time to Nepal time string:', error);
-            // Return current Nepal time as fallback
-            return this.getCurrentNepalTimeForDB();
-        }
     }
 }
 
