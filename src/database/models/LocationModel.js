@@ -6,6 +6,7 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
+            const nepalTime = moment().tz('Asia/Kathmandu').toDate();
             const location = await prisma.getClient().location.create({
                 data: {
                     imei: data.imei.toString(),
