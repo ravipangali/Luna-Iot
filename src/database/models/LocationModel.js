@@ -14,7 +14,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
-                    createdAt: data.createdAt || new Date()
+                    createdAt: data.createdAt
                 }
             });
 
