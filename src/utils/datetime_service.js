@@ -6,6 +6,28 @@ class DateTimeService {
     }
 
     /**
+     * Get current Nepal time as Date object
+     * This ensures the Nepal timezone is preserved
+     * @returns {Date} Current time in Nepal timezone
+     */
+    getCurrentNepalTime() {
+        // Get current time in Nepal timezone
+        const nepalMoment = moment().tz(this.nepalTimezone);
+        
+        // Create a new Date object with the Nepal time components
+        const nepalDate = new Date();
+        nepalDate.setFullYear(nepalMoment.year());
+        nepalDate.setMonth(nepalMoment.month());
+        nepalDate.setDate(nepalMoment.date());
+        nepalDate.setHours(nepalMoment.hour());
+        nepalDate.setMinutes(nepalMoment.minute());
+        nepalDate.setSeconds(nepalMoment.second());
+        nepalDate.setMilliseconds(nepalMoment.millisecond());
+        
+        return nepalDate;
+    }
+
+    /**
      * Convert device timestamp to Nepal timezone
      * @param {string|number} deviceTime - Device fixTime or fixTimestamp
      * @returns {Date} Date object in Nepal timezone
@@ -24,22 +46,25 @@ class DateTimeService {
                 throw new Error('Invalid device time format');
             }
 
-            // Convert to Nepal timezone and return as Date object
-            const nepalTime = momentObj.tz(this.nepalTimezone);
-            return nepalTime.toDate();
+            // Convert to Nepal timezone
+            const nepalMoment = momentObj.tz(this.nepalTimezone);
+            
+            // Create Date object with Nepal time components
+            const nepalDate = new Date();
+            nepalDate.setFullYear(nepalMoment.year());
+            nepalDate.setMonth(nepalMoment.month());
+            nepalDate.setDate(nepalMoment.date());
+            nepalDate.setHours(nepalMoment.hour());
+            nepalDate.setMinutes(nepalMoment.minute());
+            nepalDate.setSeconds(nepalMoment.second());
+            nepalDate.setMilliseconds(nepalMoment.millisecond());
+            
+            return nepalDate;
         } catch (error) {
             console.error('Error converting device time to Nepal time:', error);
             // Return current Nepal time as fallback
-            return moment().tz(this.nepalTimezone).toDate();
+            return this.getCurrentNepalTime();
         }
-    }
-
-    /**
-     * Get current Nepal time as Date object
-     * @returns {Date} Current time in Nepal timezone
-     */
-    getCurrentNepalTime() {
-        return moment().tz(this.nepalTimezone).toDate();
     }
 
     /**
@@ -49,6 +74,14 @@ class DateTimeService {
      */
     formatNepalTime(date, format = 'YYYY-MM-DD HH:mm:ss') {
         return moment(date).tz(this.nepalTimezone).format(format);
+    }
+
+    /**
+     * Get current Nepal time as formatted string for debugging
+     * @returns {string} Current Nepal time as formatted string
+     */
+    getCurrentNepalTimeString() {
+        return moment().tz(this.nepalTimezone).format('YYYY-MM-DD HH:mm:ss');
     }
 }
 
