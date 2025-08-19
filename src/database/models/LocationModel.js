@@ -6,35 +6,24 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
-            // const location = await prisma.getClient().location.create({
-            //     data: {
-            //         imei: data.imei.toString(),
-            //         latitude: data.latitude,
-            //         longitude: data.longitude,
-            //         speed: data.speed,
-            //         course: data.course,
-            //         realTimeGps: data.realTimeGps,
-            //         satellite: data.satellite || 0,
-            //         createdAt: new Date(currentTime)
-            //     }
-            // });
-            // Use raw SQL to insert with Nepal time
-            const location = await prisma.getClient().$executeRaw`
-                INSERT INTO locations (imei, latitude, longitude, speed, course, real_time_gps, satellite, created_at)
-                VALUES (
-                    ${data.imei.toString()}, 
-                    ${data.latitude}, 
-                    ${data.longitude}, 
-                    ${data.speed}, 
-                    ${data.course}, 
-                    ${data.realTimeGps}, 
-                    ${data.satellite || 0}, 
-                    DATE_ADD(NOW(), INTERVAL 345 MINUTE)
-                )
-            `;
+            // Get current UTC time and add 5 hours 45 minutes for Nepal timezone
+            const now = new Date();
+            // Add 5 hours and 45 minutes (345 minutes) to current UTC time
+            const nepalTime = new Date(now.getTime() + (5 * 60 + 45) * 60000);
 
-            console.log('✅ Location saved with Nepal time using raw SQL');
-
+            const location = await prisma.getClient().location.create({
+                data: {
+                    imei: data.imei.toString(),
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    speed: data.speed,
+                    course: data.course,
+                    realTimeGps: data.realTimeGps,
+                    satellite: data.satellite || 0,
+                    createdAt: nepalTime
+                }
+            });
+            
             // Then update odometer
             await this.updateVehicleOdometer(data.imei, data.latitude, data.longitude);
 
