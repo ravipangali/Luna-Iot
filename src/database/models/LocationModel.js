@@ -6,25 +6,15 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
-            // Get current Nepal time and create Date object with Nepal components
-            const nepalMoment = moment().tz('Asia/Kathmandu');
+             // Get current Nepal time as string to preserve exact time
+             const nepalTimeString = moment().tz('Asia/Kathmandu').format('YYYY-MM-DD HH:mm:ss');
             
-            // Create Date object with Nepal time components
-            const nepalDate = new Date();
-            nepalDate.setFullYear(nepalMoment.year());
-            nepalDate.setMonth(nepalMoment.month());
-            nepalDate.setDate(nepalMoment.date());
-            nepalDate.setHours(nepalMoment.hour());
-            nepalDate.setMinutes(nepalMoment.minute());
-            nepalDate.setSeconds(nepalMoment.second());
-            nepalDate.setMilliseconds(nepalMoment.millisecond());
+             console.log('=== LOCATION MODEL DEBUG ===');
+             console.log('Current UTC time:', new Date().toISOString());
+             console.log('Current Nepal time string:', nepalTimeString);
+             console.log('Nepal time type:', typeof nepalTimeString);
+             console.log('===========================');
             
-            console.log('=== LOCATION MODEL DEBUG ===');
-            console.log('Current UTC time:', new Date().toISOString());
-            console.log('Nepal moment:', nepalMoment.format('YYYY-MM-DD HH:mm:ss'));
-            console.log('Nepal Date object:', nepalDate);
-            console.log('Nepal Date ISO:', nepalDate.toISOString());
-            console.log('===========================');
             const location = await prisma.getClient().location.create({
                 data: {
                     imei: data.imei.toString(),
@@ -34,7 +24,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
-                    createdAt: nepalDate
+                    createdAt: nepalTimeString
                 }
             });
 
