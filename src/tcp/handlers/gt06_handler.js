@@ -89,10 +89,10 @@ class GT06Handler {
 
             if (data.fixTime) {
                 // Use fixTime if available (ISO string format)
-                createdAt = datetimeService.toNepalTime(data.fixTime);
+                createdAt = datetimeService.toNepalTimeISO(data.fixTime);
             } else if (data.fixTimestamp) {
                 // Use fixTimestamp if available (Unix timestamp in seconds)
-                createdAt = datetimeService.toNepalTime(data.fixTimestamp);
+                createdAt = datetimeService.toNepalTimeISO(data.fixTimestamp);
             }
             const locationData = {
                 imei: data.imei.toString(),

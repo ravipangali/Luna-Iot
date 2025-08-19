@@ -6,11 +6,12 @@ class DateTimeService {
     }
 
     /**
-     * Convert any timestamp to Nepal timezone
+     * Convert any timestamp to Nepal timezone and return as ISO string
+     * This ensures the Nepal time is preserved when saving to database
      * @param {Date|string|number} timestamp - Input timestamp (Date object, ISO string, or Unix timestamp)
-     * @returns {Date} Date object in Nepal timezone
+     * @returns {string} ISO string in Nepal timezone
      */
-    toNepalTime(timestamp) {
+    toNepalTimeISO(timestamp) {
         try {
             let momentObj;
             
@@ -33,35 +34,57 @@ class DateTimeService {
                 throw new Error('Invalid timestamp format');
             }
 
-            // Convert to Nepal timezone
+            // Convert to Nepal timezone and return as ISO string
             const nepalTime = momentObj.tz(this.nepalTimezone);
-            
-            // Return as Date object
-            return nepalTime.toDate();
+            return nepalTime.toISOString();
         } catch (error) {
             console.error('Error converting to Nepal time:', error);
             // Return current Nepal time as fallback
+            return moment().tz(this.nepalTimezone).toISOString();
+        }
+    }
+
+    /**
+     * Convert any timestamp to Nepal timezone as Date object
+     * @param {Date|string|number} timestamp - Input timestamp
+     * @returns {Date} Date object in Nepal timezone
+     */
+    toNepalTime(timestamp) {
+        try {
+            let momentObj;
+            
+            if (timestamp instanceof Date) {
+                momentObj = moment(timestamp);
+            } else if (typeof timestamp === 'string') {
+                momentObj = moment(timestamp);
+            } else if (typeof timestamp === 'number') {
+                if (timestamp < 1000000000000) {
+                    momentObj = moment.unix(timestamp);
+                } else {
+                    momentObj = moment(timestamp);
+                }
+            } else {
+                throw new Error('Invalid timestamp format');
+            }
+
+            const nepalTime = momentObj.tz(this.nepalTimezone);
+            return nepalTime.toDate();
+        } catch (error) {
+            console.error('Error converting to Nepal time:', error);
             return moment().tz(this.nepalTimezone).toDate();
         }
     }
 
     /**
-     * Convert Nepal time to UTC
-     * @param {Date|string} nepalTime - Time in Nepal timezone
-     * @returns {Date} Date object in UTC
+     * Get current Nepal time as ISO string
+     * @returns {string} Current time in Nepal timezone as ISO string
      */
-    nepalToUTC(nepalTime) {
-        try {
-            const momentObj = moment.tz(nepalTime, this.nepalTimezone);
-            return momentObj.utc().toDate();
-        } catch (error) {
-            console.error('Error converting Nepal time to UTC:', error);
-            return new Date();
-        }
+    getCurrentNepalTimeISO() {
+        return moment().tz(this.nepalTimezone).toISOString();
     }
 
     /**
-     * Get current Nepal time
+     * Get current Nepal time as Date object
      * @returns {Date} Current time in Nepal timezone
      */
     getCurrentNepalTime() {
@@ -81,6 +104,21 @@ class DateTimeService {
         } catch (error) {
             console.error('Error formatting Nepal time:', error);
             return moment().tz(this.nepalTimezone).format(format);
+        }
+    }
+
+    /**
+     * Parse Nepal time string and convert to UTC for database storage
+     * @param {string} nepalTimeString - Time string in Nepal timezone
+     * @returns {Date} UTC Date object for database storage
+     */
+    nepalTimeStringToUTC(nepalTimeString) {
+        try {
+            const nepalMoment = moment.tz(nepalTimeString, this.nepalTimezone);
+            return nepalMoment.utc().toDate();
+        } catch (error) {
+            console.error('Error converting Nepal time string to UTC:', error);
+            return new Date();
         }
     }
 
