@@ -39,6 +39,8 @@ class GT06Handler {
         var device = new DeviceModel();
         device = await device.getDataByImei(data.imei);
 
+        console.log('DATA: ',data);
+
         if (device === null) {
             socketService.deviceMonitoringMessage('imei_not_registered', data.imei, null, null);
             return;
