@@ -4,59 +4,68 @@ const tcpService = require('../../tcp/tcp_service');
 
 class RelayController {
     // Turn relay ON
-    static async turnRelayOn(req, res) {
-        try {
-            const { imei } = req.body;
-            const user = req.user;
+    // In the turnRelayOn method, add debug logging:
+static async turnRelayOn(req, res) {
+    try {
+        const { imei } = req.body;
+        const user = req.user;
 
-            if (!imei) {
-                return errorResponse(res, 'IMEI is required', 400);
-            }
-
-            // Check if user has access to this vehicle
-            const userVehicle = await prisma.getClient().userVehicle.findFirst({
-                where: {
-                    userId: user.id,
-                    vehicle: {
-                        imei: imei
-                    }
-                },
-                include: {
-                    vehicle: true
-                }
-            });
-
-            if (!userVehicle) {
-                return errorResponse(res, 'Vehicle not found or access denied', 404);
-            }
-
-            // Check if device is connected via TCP
-            const isConnected = tcpService.isDeviceConnected(imei);
-            if (!isConnected) {
-                return errorResponse(res, 'Vehicle not connected. Please try again when vehicle is online.', 400);
-            }
-
-            // Send command to device
-            console.log(`Sending relay ON command: HFYD# to IMEI: ${imei}`);
-            const commandResult = await tcpService.sendCommand(imei, 'HFYD#');
-            
-            if (!commandResult.success) {
-                return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
-            }
-            
-            // Return success - device will update status via TCP
-            return successResponse(res, {
-                relayStatus: 'COMMAND_SENT',
-                command: 'HFYD#',
-                message: 'Relay ON command sent successfully. Status will update shortly.',
-                deviceConnected: true
-            });
-
-        } catch (error) {
-            console.error('Relay ON error:', error);
-            return errorResponse(res, 'Failed to turn relay ON', 500);
+        if (!imei) {
+            return errorResponse(res, 'IMEI is required', 400);
         }
+
+        // Debug: Log the IMEI being checked
+        console.log(`🔍 Checking connection for IMEI: ${imei}`);
+
+        // Check if user has access to this vehicle
+        const userVehicle = await prisma.getClient().userVehicle.findFirst({
+            where: {
+                userId: user.id,
+                vehicle: {
+                    imei: imei
+                }
+            },
+            include: {
+                vehicle: true
+            }
+        });
+
+        if (!userVehicle) {
+            return errorResponse(res, 'Vehicle not found or access denied', 404);
+        }
+
+        // Debug: Check device connection with detailed logging
+        const isConnected = tcpService.isDeviceConnected(imei);
+        console.log(`📡 Device connection check for ${imei}: ${isConnected}`);
+        
+        // Debug: Show all connected devices
+        const connectedDevices = tcpService.getConnectedDevices();
+        console.log(`📱 All connected devices:`, connectedDevices);
+        
+        if (!isConnected) {
+            return errorResponse(res, 'Vehicle not connected. Please try again when vehicle is online.', 400);
+        }
+
+        // Send command to device
+        console.log(`📤 Sending relay ON command: HFYD# to IMEI: ${imei}`);
+        const commandResult = await tcpService.sendCommand(imei, 'HFYD#');
+        
+        if (!commandResult.success) {
+            return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
+        }
+        
+        return successResponse(res, {
+            relayStatus: 'COMMAND_SENT',
+            command: 'HFYD#',
+            message: 'Relay ON command sent successfully. Status will update shortly.',
+            deviceConnected: true
+        });
+
+    } catch (error) {
+        console.error('Relay ON error:', error);
+        return errorResponse(res, 'Failed to turn relay ON', 500);
     }
+}
 
     // Turn relay OFF
     static async turnRelayOff(req, res) {
@@ -202,6 +211,33 @@ class RelayController {
             throw error;
         }
     }
+
+    // Add this method to test device connections
+static async getDeviceConnectionStatus(req, res) {
+    try {
+        const { imei } = req.params;
+        
+        // Debug: Show all connections
+        const tcpService = require('../../tcp/tcp_service');
+        const allConnections = tcpService.getConnectedDevices();
+        const isConnected = tcpService.isDeviceConnected(imei);
+        
+        console.log(`🔍 Connection check for IMEI: ${imei}`);
+        console.log(`�� All connections:`, allConnections);
+        console.log(`✅ Is connected: ${isConnected}`);
+        
+        return successResponse(res, {
+            imei: imei,
+            isConnected: isConnected,
+            allConnections: allConnections,
+            connectionCount: allConnections.length
+        });
+        
+    } catch (error) {
+        console.error('Get device connection status error:', error);
+        return errorResponse(res, 'Failed to get connection status', 500);
+    }
+}
 }
 
 module.exports = RelayController;

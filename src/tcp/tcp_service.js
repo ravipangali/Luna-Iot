@@ -25,12 +25,28 @@ class TCPService {
         return null;
     }
 
+    // Add this method to debug connection issues
+    getConnectedDevicesDebug() {
+        console.log('=== TCP CONNECTIONS DEBUG ===');
+        console.log('Total connections:', this.connections.size);
+
+        for (const [id, connection] of this.connections) {
+            console.log(`Connection ID: ${id}`);
+            console.log(`Device IMEI: ${connection.deviceImei}`);
+            console.log(`Remote Address: ${connection.remoteAddress}`);
+            console.log(`Connected At: ${connection.connectedAt}`);
+            console.log('---');
+        }
+
+        return this.getConnectedDevices();
+    }
+
     // Send command to specific device
     async sendCommand(imei, command) {
         try {
             // Find the TCP connection for this device
             const connection = this.findConnectionByImei(imei);
-            
+
             if (!connection) {
                 return { success: false, error: 'Device not connected' };
             }

@@ -44,6 +44,9 @@ class GT06Handler {
             socketService.deviceMonitoringMessage('imei_not_registered', data.imei, null, null);
             return;
         }
+        // IMPORTANT: Set the device IMEI on the socket
+        socket.deviceImei = data.imei;
+        console.log(`Device IMEI set on socket: ${data.imei}`);
 
         if (data.event.string === 'status') {
             const battery = this.getBattery(data.voltageLevel);

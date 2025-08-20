@@ -11,5 +11,6 @@ router.use(AuthMiddleware.verifyToken);
 router.post('/relay/on', RelayController.turnRelayOn);
 router.post('/relay/off', RelayController.turnRelayOff);
 router.get('/relay/status/:imei', RelayController.getRelayStatus);
+router.get('/relay/connection/:imei', RelayController.getDeviceConnectionStatus);
 
 module.exports = router;
