@@ -12,4 +12,7 @@ router.post('/relay/on', RelayController.turnRelayOn);
 router.post('/relay/off', RelayController.turnRelayOff);
 router.get('/relay/status/:imei', RelayController.getRelayStatus);
 
+// Debug endpoint
+router.get('/debug/connections', RelayController.debugDeviceConnections);
+
 module.exports = router;

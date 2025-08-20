@@ -3,65 +3,36 @@ const net = require('net');
 class TCPService {
     constructor() {
         this.connections = new Map();
+        this.deviceImeiMap = new Map(); // imei -> connectionId
     }
 
-    // Send command to specific device
-    async sendCommand(imei, command) {
-        try {
-            // Find the TCP connection for this device
-            const connection = this.findConnectionByImei(imei);
-            
-            if (!connection) {
-                return { success: false, error: 'Device not connected' };
-            }
-
-            // Send command
-            const result = await this.sendCommandToConnection(connection, command);
-            return result;
-        } catch (error) {
-            console.error('Error sending command:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // Find connection by IMEI
-    findConnectionByImei(imei) {
-        for (const [id, connection] of this.connections) {
-            if (connection.deviceImei === imei) {
-                return connection;
-            }
-        }
-        return null;
-    }
-
-    // Send command to specific connection
-    async sendCommandToConnection(connection, command) {
-        return new Promise((resolve, reject) => {
-            try {
-                // Add command to connection
-                connection.socket.write(command, (error) => {
-                    if (error) {
-                        console.error('Error writing command:', error);
-                        resolve({ success: false, error: error.message });
-                    } else {
-                        console.log(`Command sent to ${connection.deviceImei}: ${command}`);
-                        resolve({ success: true, message: 'Command sent successfully' });
-                    }
-                });
-            } catch (error) {
-                resolve({ success: false, error: error.message });
-            }
-        });
-    }
-
-    // Store connection with device IMEI
+    // Store connection with device info
     storeConnection(connectionId, connectionData) {
         this.connections.set(connectionId, connectionData);
+        
+        // If device IMEI is available, map it
+        if (connectionData.deviceImei) {
+            this.deviceImeiMap.set(connectionData.deviceImei, connectionId);
+            console.log(`Device ${connectionData.deviceImei} mapped to connection ${connectionId}`);
+        }
     }
 
     // Remove connection
     removeConnection(connectionId) {
+        const connectionData = this.connections.get(connectionId);
+        if (connectionData && connectionData.deviceImei) {
+            this.deviceImeiMap.delete(connectionData.deviceImei);
+            console.log(`Device ${connectionData.deviceImei} connection removed`);
+        }
         this.connections.delete(connectionId);
+    }
+
+    // Find connection by IMEI
+    findConnectionByImei(imei) {
+        const connectionId = this.deviceImeiMap.get(imei);
+        if (!connectionId) return null;
+        
+        return this.connections.get(connectionId);
     }
 
     // Check if device is connected by IMEI
@@ -104,6 +75,48 @@ class TCPService {
             console.error(`Error sending relay command to device ${imei}:`, error);
             return { success: false, error: error.message };
         }
+    }
+
+    // Get all connected devices
+    getConnectedDevices() {
+        const devices = [];
+        for (const [imei, connectionId] of this.deviceImeiMap) {
+            const connection = this.connections.get(connectionId);
+            if (connection && connection.socket && !connection.socket.destroyed) {
+                devices.push({
+                    imei: imei,
+                    connectionId: connectionId,
+                    connectedAt: connection.connectedAt,
+                    remoteAddress: connection.remoteAddress,
+                    remotePort: connection.remotePort
+                });
+            }
+        }
+        return devices;
+    }
+
+    // Debug method to see all connections
+    debugConnections() {
+        console.log('=== TCP CONNECTIONS DEBUG ===');
+        console.log('Total connections:', this.connections.size);
+        console.log('Device IMEI mappings:', this.deviceImeiMap.size);
+        
+        for (const [imei, connectionId] of this.deviceImeiMap) {
+            const connection = this.connections.get(connectionId);
+            console.log(`IMEI: ${imei} -> Connection: ${connectionId}`);
+            console.log(`  Socket destroyed: ${connection?.socket?.destroyed || 'N/A'}`);
+            console.log(`  Connected at: ${connection?.connectedAt || 'N/A'}`);
+        }
+    }
+
+    // Get connection count
+    getConnectionCount() {
+        return this.connections.size;
+    }
+
+    // Get device count
+    getDeviceCount() {
+        return this.deviceImeiMap.size;
     }
 }
 

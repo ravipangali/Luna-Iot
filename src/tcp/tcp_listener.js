@@ -17,17 +17,19 @@ class TCPListener {
             // Store connection info
             const connectionData = {
                 socket: socket,
+                connectionId: connectionId,
                 workerId: process.pid,
                 connectedAt: new Date(),
                 remoteAddress: socket.remoteAddress,
-                remotePort: socket.remotePort
+                remotePort: socket.remotePort,
+                deviceImei: null // Will be set when IMEI is received
             };
 
             this.connections.set(connectionId, connectionData);
             tcpService.storeConnection(connectionId, connectionData);
 
             // Handle incoming data
-            socket.on('data', (data) => {
+            socket.on('data', async (data) => {
                 // Data handling
                 let datahandler = new tcpHandler.DataHandler();
                 datahandler.handleData(data, socket);
@@ -35,6 +37,8 @@ class TCPListener {
                  // Update device IMEI in connection data
                  if (socket.deviceImei) {
                     connectionData.deviceImei = socket.deviceImei;
+                    console.log(`Logging: SOCKET IMEI: ${socket.deviceImei}`);
+                    
                     tcpService.storeConnection(connectionId, connectionData);
                 }
             });

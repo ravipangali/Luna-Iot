@@ -228,6 +228,27 @@ class RelayController {
             throw error;
         }
     }
+
+    // Debug device connections
+    static async debugDeviceConnections(req, res) {
+        try {
+            const connectedDevices = tcpService.getConnectedDevices();
+            const totalConnections = tcpService.getConnectionCount();
+            const deviceCount = tcpService.getDeviceCount();
+            
+            // Debug info
+            tcpService.debugConnections();
+            
+            return successResponse(res, {
+                totalConnections: totalConnections,
+                deviceCount: deviceCount,
+                connectedDevices: connectedDevices
+            });
+        } catch (error) {
+            console.error('Error getting device connections:', error);
+            return errorResponse(res, 'Failed to get device connections', 500);
+        }
+    }
 }
 
 module.exports = RelayController;
