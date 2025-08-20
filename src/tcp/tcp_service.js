@@ -13,7 +13,6 @@ class TCPService {
         // If device IMEI is available, map it
         if (connectionData.deviceImei) {
             this.deviceImeiMap.set(connectionData.deviceImei, connectionId);
-            console.log(`Device ${connectionData.deviceImei} mapped to connection ${connectionId}`);
         }
     }
 

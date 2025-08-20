@@ -36,9 +36,7 @@ class TCPListener {
 
                  // Update device IMEI in connection data
                  if (socket.deviceImei) {
-                    connectionData.deviceImei = socket.deviceImei;
-                    console.log(`Logging: SOCKET IMEI: ${socket.deviceImei}`);
-                    
+                    connectionData.deviceImei = socket.deviceImei;                    
                     tcpService.storeConnection(connectionId, connectionData);
                 }
             });
