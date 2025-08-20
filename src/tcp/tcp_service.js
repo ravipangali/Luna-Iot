@@ -29,7 +29,7 @@ class TCPService {
     // Find connection by IMEI
     findConnectionByImei(imei) {
         const connectionId = this.deviceImeiMap.get(imei);
-        print(`TOTAL LISTED IMEI: ${this.deviceImeiMap.toString()}`)
+        console.log(`TOTAL LISTED IMEI: ${this.deviceImeiMap.toString()}`)
         if (!connectionId) return null;
         
         return this.connections.get(connectionId);
