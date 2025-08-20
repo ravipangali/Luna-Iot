@@ -29,17 +29,24 @@ class RelayController {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // For now, just simulate the command and update status
-            // You can integrate with your existing TCP service later
+            // Send command to device via TCP service
             console.log(`Sending relay ON command: HFYD# to IMEI: ${imei}`);
             
-            // Update relay status in database
-            await RelayController.updateRelayStatus(imei, true);
+            // Import TCP service to send actual command
+            const tcpService = require('../../tcp/tcp_service');
+            const commandResult = await tcpService.sendCommand(imei, 'HFYD#');
             
+            if (!commandResult.success) {
+                return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
+            }
+            
+            // Don't update database yet - wait for device response
+            // The database will be updated when the device sends status update
             return successResponse(res, {
-                relayStatus: 'ON',
+                relayStatus: 'PENDING',
                 command: 'HFYD#',
-                message: 'Relay turned ON successfully'
+                message: 'Relay ON command sent successfully. Status will update when device responds.',
+                deviceResponse: commandResult
             });
 
         } catch (error) {
@@ -75,17 +82,24 @@ class RelayController {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // For now, just simulate the command and update status
-            // You can integrate with your existing TCP service later
+            // Send command to device via TCP service
             console.log(`Sending relay OFF command: DYD# to IMEI: ${imei}`);
             
-            // Update relay status in database
-            await RelayController.updateRelayStatus(imei, false);
+            // Import TCP service to send actual command
+            const tcpService = require('../../tcp/tcp_service');
+            const commandResult = await tcpService.sendCommand(imei, 'DYD#');
             
+            if (!commandResult.success) {
+                return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
+            }
+            
+            // Don't update database yet - wait for device response
+            // The database will be updated when the device sends status update
             return successResponse(res, {
-                relayStatus: 'OFF',
+                relayStatus: 'PENDING',
                 command: 'DYD#',
-                message: 'Relay turned OFF successfully'
+                message: 'Relay OFF command sent successfully. Status will update when device responds.',
+                deviceResponse: commandResult
             });
 
         } catch (error) {
@@ -121,7 +135,7 @@ class RelayController {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Get latest status
+            // Get latest status from database (this reflects actual device state)
             const latestStatus = await prisma.getClient().status.findFirst({
                 where: { imei: imei },
                 orderBy: { createdAt: 'desc' }
@@ -129,7 +143,8 @@ class RelayController {
 
             return successResponse(res, {
                 relayStatus: latestStatus?.relay ? 'ON' : 'OFF',
-                lastUpdated: latestStatus?.createdAt
+                lastUpdated: latestStatus?.createdAt,
+                isDeviceConnected: latestStatus ? true : false
             });
 
         } catch (error) {
@@ -138,8 +153,9 @@ class RelayController {
         }
     }
 
-    // Update relay status in database
-    static async updateRelayStatus(imei, relayStatus) {
+    // This method will be called by the GT06 handler when device sends status update
+    // It updates the database with the actual relay state from the device
+    static async updateRelayStatusFromDevice(imei, relayStatus, otherStatusData = {}) {
         try {
             // Get the latest status to copy existing values
             const latestStatus = await prisma.getClient().status.findFirst({
@@ -148,28 +164,33 @@ class RelayController {
             });
 
             if (latestStatus) {
-                // Update existing status instead of creating a new one
+                // Update existing status with new relay state and other data
                 await prisma.getClient().status.update({
                     where: { id: latestStatus.id },
-                    data: { relay: relayStatus }
+                    data: { 
+                        relay: relayStatus,
+                        ...otherStatusData // Include any other status updates from device
+                    }
                 });
             } else {
                 // Create new status if none exists (with default values)
                 await prisma.getClient().status.create({
                     data: {
                         imei: imei,
-                        battery: 0,
-                        signal: 0,
-                        ignition: false,
-                        charging: false,
+                        battery: otherStatusData.battery || 0,
+                        signal: otherStatusData.signal || 0,
+                        ignition: otherStatusData.ignition || false,
+                        charging: otherStatusData.charging || false,
                         relay: relayStatus,
                         createdAt: new Date()
                     }
                 });
             }
+
+            console.log(`Relay status updated from device: IMEI ${imei}, Relay: ${relayStatus ? 'ON' : 'OFF'}`);
         } catch (error) {
-            console.error('Update relay status error:', error);
-            throw error; // Re-throw to handle in the calling method
+            console.error('Update relay status from device error:', error);
+            throw error;
         }
     }
 }
