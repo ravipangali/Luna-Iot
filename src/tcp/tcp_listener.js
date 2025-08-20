@@ -20,11 +20,11 @@ class TCPListener {
                 workerId: process.pid,
                 connectedAt: new Date(),
                 remoteAddress: socket.remoteAddress,
-                remotePort: socket.remotePort,
+                remotePort: socket.remotePort
             };
 
             this.connections.set(connectionId, connectionData);
-            tcpService.addConnection(connectionId, connectionData);
+            tcpService.storeConnection(connectionId, connectionData);
 
             // Handle incoming data
             socket.on('data', (data) => {
@@ -34,17 +34,8 @@ class TCPListener {
 
                  // Update device IMEI in connection data
                  if (socket.deviceImei) {
-                    tcpService.updateDeviceInfo(socket.deviceImei, {
-                        imei: socket.deviceImei,
-                        lastUpdate: new Date(),
-                        ...socket
-                    });
                     connectionData.deviceImei = socket.deviceImei;
-                    tcpService.updateDeviceLastSeen(socket.deviceImei);
-                    
-                    // Debug log
-                    console.log(`🔗 TCP Connection updated with IMEI: ${socket.deviceImei}`);
-                    console.log(`�� Total connections: ${tcpService.getConnectedDevices().length}`);
+                    tcpService.storeConnection(connectionId, connectionData);
                 }
             });
 
@@ -53,7 +44,6 @@ class TCPListener {
                 socketService.deviceMonitoringMessage('disconnected', null, null, null);
                 this.connections.delete(connectionId);
                 tcpService.removeConnection(connectionId);
-                console.log(`🔌 TCP Connection closed: ${connectionId}`);
             });
             
             // Handle errors
