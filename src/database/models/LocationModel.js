@@ -408,7 +408,6 @@ class LocationModel {
 
             // Filter out very small distances (GPS noise)
             if (distance < 0.001) { // Less than 1 meter
-                console.log(`Distance too small (${distance} km), skipping odometer update`);
                 return;
             }
 

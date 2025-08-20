@@ -1,4 +1,5 @@
 const prisma = require('../prisma');
+const datetimeService = require('../../utils/datetime_service'); // Add this import
 
 class OtpModel {
     async createOTP(phone, otp) {
