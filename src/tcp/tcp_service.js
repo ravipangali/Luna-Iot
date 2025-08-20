@@ -30,9 +30,9 @@ class TCPService {
     findConnectionByImei(imei) {
         const connectionId = this.deviceImeiMap.get(imei);
         console.log(`Connection Device Size: ${this.deviceImeiMap.size}`);
-        Object.keys(this.deviceImeiMap).forEach(key => {
-            console.log(`Connection ${key}: ${this.deviceImeiMap.get(key)}`);
-        });
+        for (const [imei, connectionId] of this.deviceImeiMap) {
+            console.log(`IMEI: ${imei} -> Connection: ${connectionId}`);
+        }
         if (!connectionId) return null;
         
         return this.connections.get(connectionId);
