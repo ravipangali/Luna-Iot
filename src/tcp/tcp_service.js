@@ -29,8 +29,8 @@ class TCPService {
     // Find connection by IMEI
     findConnectionByImei(imei) {
         const connectionId = this.deviceImeiMap.get(imei);
-        Object.keys(this.connections).forEach(key => {
-            console.log(`Connection ${key}: ${this.connections.get(key).deviceImei}`);
+        Object.keys(this.deviceImeiMap).forEach(key => {
+            console.log(`Connection ${key}: ${this.deviceImeiMap.get(key)}`);
         });
         if (!connectionId) return null;
         
