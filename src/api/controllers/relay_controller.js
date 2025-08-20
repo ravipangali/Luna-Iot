@@ -13,7 +13,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.userVehicle.findFirst({
+            const userVehicle = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: user.id,
                     vehicle: {
@@ -59,7 +59,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.userVehicle.findFirst({
+            const userVehicle = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: user.id,
                     vehicle: {
@@ -105,7 +105,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.userVehicle.findFirst({
+            const userVehicle = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: user.id,
                     vehicle: {
@@ -122,7 +122,7 @@ class RelayController {
             }
 
             // Get latest status
-            const latestStatus = await prisma.status.findFirst({
+            const latestStatus = await prisma.getClient().status.findFirst({
                 where: { imei: imei },
                 orderBy: { createdAt: 'desc' }
             });
@@ -141,10 +141,14 @@ class RelayController {
     // Update relay status in database
     static async updateRelayStatus(imei, relayStatus) {
         try {
-            await prisma.status.create({
+            await prisma.getClient().status.create({
                 data: {
                     imei: imei,
                     relay: relayStatus,
+                    battery: 0, // Default value
+                    signal: 0,   // Default value
+                    ignition: false, // Default value
+                    charging: false, // Default value
                     createdAt: new Date()
                 }
             });
