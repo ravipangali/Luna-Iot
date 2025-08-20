@@ -7,11 +7,18 @@ class TCPService {
 
     // Check if device is connected
     isDeviceConnected(imei) {
+        console.log(`🔍 Checking connection for IMEI: ${imei}`);
+        console.log(`📱 Total stored connections: ${this.connections.size}`);
+        
         for (const [id, connection] of this.connections) {
+            console.log(`Connection ID: ${id}, Device IMEI: ${connection.deviceImei}`);
             if (connection.deviceImei === imei) {
+                console.log(`✅ Device ${imei} is connected!`);
                 return true;
             }
         }
+        
+        console.log(`❌ Device ${imei} is NOT connected`);
         return false;
     }
 
