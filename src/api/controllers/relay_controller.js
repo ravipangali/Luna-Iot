@@ -3,71 +3,79 @@ const prisma = require('../../database/prisma');
 const tcpService = require('../../tcp/tcp_service');
 
 class RelayController {
-    // Turn relay ON
-    // In the turnRelayOn method, add debug logging:
-static async turnRelayOn(req, res) {
-    try {
-        const { imei } = req.body;
-        const user = req.user;
+    // Turn relay ON with auto-reconnection
+    static async turnRelayOn(req, res) {
+        try {
+            const { imei } = req.body;
+            const user = req.user;
 
-        if (!imei) {
-            return errorResponse(res, 'IMEI is required', 400);
-        }
-
-        // Debug: Log the IMEI being checked
-        console.log(`🔍 Checking connection for IMEI: ${imei}`);
-
-        // Check if user has access to this vehicle
-        const userVehicle = await prisma.getClient().userVehicle.findFirst({
-            where: {
-                userId: user.id,
-                vehicle: {
-                    imei: imei
-                }
-            },
-            include: {
-                vehicle: true
+            if (!imei) {
+                return errorResponse(res, 'IMEI is required', 400);
             }
-        });
 
-        if (!userVehicle) {
-            return errorResponse(res, 'Vehicle not found or access denied', 404);
+            // Check if user has access to this vehicle
+            const userVehicle = await prisma.vehicle.findFirst({
+                where: {
+                    device: {
+                        imei: imei
+                    },
+                    OR: [
+                        { userId: user.id },
+                        { dealerId: user.id },
+                        { adminId: user.id }
+                    ]
+                }
+            });
+
+            if (!userVehicle) {
+                return errorResponse(res, 'Vehicle not found or access denied', 404);
+            }
+
+            // Check device connection status
+            let isConnected = tcpService.isDeviceConnected(imei);
+
+            // If device is not connected, attempt reconnection
+            if (!isConnected) {
+                console.log(`Device ${imei} is offline, attempting reconnection...`);
+                
+                // Attempt reconnection
+                const reconnected = await tcpService.attemptDeviceReconnection(imei);
+                
+                if (reconnected) {
+                    isConnected = true;
+                    console.log(`Device ${imei} reconnected successfully`);
+                } else {
+                    console.log(`Device ${imei} reconnection failed`);
+                    return errorResponse(res, 'Vehicle not connected. Please try again later.', 503);
+                }
+            }
+
+            // Device is now connected, send relay command
+            console.log(`Sending relay ON command to device: ${imei}`);
+            
+            // Send command to device via TCP
+            const commandResult = await tcpService.sendRelayCommand(imei, 'ON');
+            
+            if (commandResult.success) {
+                // Update relay status in database
+                await RelayController.updateRelayStatus(imei, true);
+                
+                return successResponse(res, 'Relay turned ON successfully', {
+                    imei: imei,
+                    relayStatus: true,
+                    timestamp: new Date()
+                });
+            } else {
+                return errorResponse(res, `Failed to send relay command: ${commandResult.error}`, 500);
+            }
+
+        } catch (error) {
+            console.error('Error in turnRelayOn:', error);
+            return errorResponse(res, 'Internal server error', 500);
         }
-
-        // Debug: Check device connection with detailed logging
-        const isConnected = tcpService.isDeviceConnected(imei);
-        console.log(`📡 Device connection check for ${imei}: ${isConnected}`);
-        
-        // Debug: Show all connected devices
-        const connectedDevices = tcpService.getConnectedDevices();
-        console.log(`📱 All connected devices:`, connectedDevices);
-        
-        if (!isConnected) {
-            return errorResponse(res, 'Vehicle not connected. Please try again when vehicle is online.', 400);
-        }
-
-        // Send command to device
-        console.log(`📤 Sending relay ON command: HFYD# to IMEI: ${imei}`);
-        const commandResult = await tcpService.sendCommand(imei, 'HFYD#');
-        
-        if (!commandResult.success) {
-            return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
-        }
-        
-        return successResponse(res, {
-            relayStatus: 'COMMAND_SENT',
-            command: 'HFYD#',
-            message: 'Relay ON command sent successfully. Status will update shortly.',
-            deviceConnected: true
-        });
-
-    } catch (error) {
-        console.error('Relay ON error:', error);
-        return errorResponse(res, 'Failed to turn relay ON', 500);
     }
-}
 
-    // Turn relay OFF
+    // Turn relay OFF with auto-reconnection
     static async turnRelayOff(req, res) {
         try {
             const { imei } = req.body;
@@ -78,15 +86,16 @@ static async turnRelayOn(req, res) {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.getClient().userVehicle.findFirst({
+            const userVehicle = await prisma.vehicle.findFirst({
                 where: {
-                    userId: user.id,
-                    vehicle: {
+                    device: {
                         imei: imei
-                    }
-                },
-                include: {
-                    vehicle: true
+                    },
+                    OR: [
+                        { userId: user.id },
+                        { dealerId: user.id },
+                        { adminId: user.id }
+                    ]
                 }
             });
 
@@ -94,31 +103,47 @@ static async turnRelayOn(req, res) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Check if device is connected via TCP
-            const isConnected = tcpService.isDeviceConnected(imei);
+            // Check device connection status
+            let isConnected = tcpService.isDeviceConnected(imei);
+
+            // If device is not connected, attempt reconnection
             if (!isConnected) {
-                return errorResponse(res, 'Vehicle not connected. Please try again when vehicle is online.', 400);
+                console.log(`Device ${imei} is offline, attempting reconnection...`);
+                
+                // Attempt reconnection
+                const reconnected = await tcpService.attemptDeviceReconnection(imei);
+                
+                if (reconnected) {
+                    isConnected = true;
+                    console.log(`Device ${imei} reconnected successfully`);
+                } else {
+                    console.log(`Device ${imei} reconnection failed`);
+                    return errorResponse(res, 'Vehicle not connected. Please try again later.', 503);
+                }
             }
 
-            // Send command to device
-            console.log(`Sending relay OFF command: DYD# to IMEI: ${imei}`);
-            const commandResult = await tcpService.sendCommand(imei, 'DYD#');
+            // Device is now connected, send relay command
+            console.log(`Sending relay OFF command to device: ${imei}`);
             
-            if (!commandResult.success) {
-                return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
+            // Send command to device via TCP
+            const commandResult = await tcpService.sendRelayCommand(imei, 'OFF');
+            
+            if (commandResult.success) {
+                // Update relay status in database
+                await RelayController.updateRelayStatus(imei, false);
+                
+                return successResponse(res, 'Relay turned OFF successfully', {
+                    imei: imei,
+                    relayStatus: false,
+                    timestamp: new Date()
+                });
+            } else {
+                return errorResponse(res, `Failed to send relay command: ${commandResult.error}`, 500);
             }
-            
-            // Return success - device will update status via TCP
-            return successResponse(res, {
-                relayStatus: 'COMMAND_SENT',
-                command: 'DYD#',
-                message: 'Relay OFF command sent successfully. Status will update shortly.',
-                deviceConnected: true
-            });
 
         } catch (error) {
-            console.error('Relay OFF error:', error);
-            return errorResponse(res, 'Failed to turn relay OFF', 500);
+            console.error('Error in turnRelayOff:', error);
+            return errorResponse(res, 'Internal server error', 500);
         }
     }
 
@@ -133,15 +158,16 @@ static async turnRelayOn(req, res) {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.getClient().userVehicle.findFirst({
+            const userVehicle = await prisma.vehicle.findFirst({
                 where: {
-                    userId: user.id,
-                    vehicle: {
+                    device: {
                         imei: imei
-                    }
-                },
-                include: {
-                    vehicle: true
+                    },
+                    OR: [
+                        { userId: user.id },
+                        { dealerId: user.id },
+                        { adminId: user.id }
+                    ]
                 }
             });
 
@@ -149,93 +175,134 @@ static async turnRelayOn(req, res) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Check device connection status
-            const isConnected = tcpService.isDeviceConnected(imei);
-            
-            // Get latest status from database
-            const latestStatus = await prisma.getClient().status.findFirst({
+            // Get current relay status from database
+            const status = await prisma.status.findFirst({
                 where: { imei: imei },
-                orderBy: { createdAt: 'desc' }
+                orderBy: { timestamp: 'desc' }
             });
 
-            return successResponse(res, {
-                relayStatus: latestStatus?.relay ? 'ON' : 'OFF',
-                lastUpdated: latestStatus?.createdAt,
-                deviceConnected: isConnected,
-                status: isConnected ? 'ONLINE' : 'OFFLINE'
+            const relayStatus = status ? status.relay : false;
+
+            return successResponse(res, 'Relay status retrieved successfully', {
+                imei: imei,
+                relayStatus: relayStatus,
+                isConnected: tcpService.isDeviceConnected(imei),
+                lastUpdated: status ? status.timestamp : null
             });
 
         } catch (error) {
-            console.error('Get relay status error:', error);
-            return errorResponse(res, 'Failed to get relay status', 500);
+            console.error('Error in getRelayStatus:', error);
+            return errorResponse(res, 'Internal server error', 500);
         }
     }
 
-    // Update relay status from device (called by GT06 handler)
-    static async updateRelayStatusFromDevice(imei, relayStatus, otherStatusData = {}) {
+    // Get device connection status
+    static async getDeviceConnectionStatus(req, res) {
         try {
-            // Get the latest status to copy existing values
-            const latestStatus = await prisma.getClient().status.findFirst({
-                where: { imei: imei },
-                orderBy: { createdAt: 'desc' }
+            const { imei } = req.params;
+            const user = req.user;
+
+            if (!imei) {
+                return errorResponse(res, 'IMEI is required', 400);
+            }
+
+            // Check if user has access to this vehicle
+            const userVehicle = await prisma.vehicle.findFirst({
+                where: {
+                    device: {
+                        imei: imei
+                    },
+                    OR: [
+                        { userId: user.id },
+                        { dealerId: user.id },
+                        { adminId: user.id }
+                    ]
+                }
             });
 
-            if (latestStatus) {
-                // Update existing status with new relay state and other data
-                await prisma.getClient().status.update({
-                    where: { id: latestStatus.id },
+            if (!userVehicle) {
+                return errorResponse(res, 'Vehicle not found or access denied', 404);
+            }
+
+            const isConnected = tcpService.isDeviceConnected(imei);
+            const connection = tcpService.getDeviceConnection(imei);
+
+            return successResponse(res, 'Device connection status retrieved successfully', {
+                imei: imei,
+                isConnected: isConnected,
+                lastSeen: connection ? connection.lastSeen : null,
+                connectionInfo: connection ? {
+                    connectionId: connection.connectionId,
+                    lastSeen: connection.lastSeen
+                } : null
+            });
+
+        } catch (error) {
+            console.error('Error in getDeviceConnectionStatus:', error);
+            return errorResponse(res, 'Internal server error', 500);
+        }
+    }
+
+    // Update relay status in database
+    static async updateRelayStatus(imei, relayStatus) {
+        try {
+            // Find existing status record
+            const existingStatus = await prisma.status.findFirst({
+                where: { imei: imei },
+                orderBy: { timestamp: 'desc' }
+            });
+
+            if (existingStatus) {
+                // Update existing status
+                await prisma.status.update({
+                    where: { id: existingStatus.id },
                     data: { 
                         relay: relayStatus,
-                        ...otherStatusData
+                        timestamp: new Date()
                     }
                 });
             } else {
-                // Create new status if none exists
-                await prisma.getClient().status.create({
+                // Create new status record with minimal required fields
+                await prisma.status.create({
                     data: {
                         imei: imei,
-                        battery: otherStatusData.battery || 0,
-                        signal: otherStatusData.signal || 0,
-                        ignition: otherStatusData.ignition || false,
-                        charging: otherStatusData.charging || false,
                         relay: relayStatus,
-                        createdAt: new Date()
+                        battery: 0, // Default value
+                        signal: 0,   // Default value
+                        ignition: false, // Default value
+                        charging: false, // Default value
+                        timestamp: new Date()
                     }
                 });
             }
 
-            console.log(`Relay status updated from device: IMEI ${imei}, Relay: ${relayStatus ? 'ON' : 'OFF'}`);
-            
+            console.log(`Relay status updated for device ${imei}: ${relayStatus}`);
         } catch (error) {
-            console.error('Update relay status from device error:', error);
+            console.error(`Error updating relay status for device ${imei}:`, error);
             throw error;
         }
     }
 
-    // Add this method to test device connections
-static async getDeviceConnectionStatus(req, res) {
+    // Debug endpoint to check all connections
+static async debugConnections(req, res) {
     try {
-        const { imei } = req.params;
-        
-        // Debug: Show all connections
         const tcpService = require('../../tcp/tcp_service');
-        const allConnections = tcpService.getConnectedDevices();
-        const isConnected = tcpService.isDeviceConnected(imei);
         
-        console.log(`🔍 Connection check for IMEI: ${imei}`);
-        console.log(`�� All connections:`, allConnections);
-        console.log(`✅ Is connected: ${isConnected}`);
+        // Get all connected devices
+        const connectedDevices = tcpService.getConnectedDevices();
         
-        return successResponse(res, {
-            imei: imei,
-            isConnected: isConnected,
-            allConnections: allConnections,
-            connectionCount: allConnections.length
+        // Debug connections
+        tcpService.debugConnections();
+        
+        return successResponse(res, 'Connection debug info', {
+            totalConnections: connectedDevices.length,
+            connectedDevices: connectedDevices,
+            timestamp: new Date()
         });
         
     } catch (error) {
-        console.error('Get device connection status error:', error);
-        return errorResponse(res, 'Failed to get connection status', 500);
+        console.error('Error in debugConnections:', error);
+        return errorResponse(res, 'Internal server error', 500);
     }
 }
 }

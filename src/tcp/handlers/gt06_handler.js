@@ -46,8 +46,24 @@ class GT06Handler {
         }
         // IMPORTANT: Set the device IMEI on the socket
         socket.deviceImei = data.imei;
+        // When processing ignition status change, update device info
         if (data.imei == '352312094623280') {
-            console.log(`Device IMEI set on socket: ${data.imei}`);
+            // Update ignition status
+            socket.imei = data.imei;
+            socket.ignition = data.ignition;
+
+            // Update device info in TCP service
+            const tcpService = require('../tcp_service');
+            tcpService.updateDeviceInfo(data.imei, {
+                imei: data.imei,
+                ignition: data.ignition,
+                lastUpdate: new Date()
+            });
+
+            // Update last seen
+            tcpService.updateDeviceLastSeen(data.imei);
+
+            console.log(`Ignition status updated for device ${data.imei}: ${data.ignition}`);
         }
 
         if (data.event.string === 'status') {
