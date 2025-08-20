@@ -21,11 +21,10 @@ class TCPListener {
                 connectedAt: new Date(),
                 remoteAddress: socket.remoteAddress,
                 remotePort: socket.remotePort,
-                deviceImei: null // Initialize as null
             };
 
             this.connections.set(connectionId, connectionData);
-            tcpService.storeConnection(connectionId, connectionData);
+            tcpService.addConnection(connectionId, connectionData);
 
             // Handle incoming data
             socket.on('data', (data) => {
@@ -35,8 +34,13 @@ class TCPListener {
 
                  // Update device IMEI in connection data
                  if (socket.deviceImei) {
+                    tcpService.updateDeviceInfo(socket.deviceImei, {
+                        imei: socket.deviceImei,
+                        lastUpdate: new Date(),
+                        ...socket
+                    });
                     connectionData.deviceImei = socket.deviceImei;
-                    tcpService.storeConnection(connectionId, connectionData);
+                    tcpService.updateDeviceLastSeen(socket.deviceImei);
                     
                     // Debug log
                     console.log(`🔗 TCP Connection updated with IMEI: ${socket.deviceImei}`);
