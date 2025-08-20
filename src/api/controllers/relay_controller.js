@@ -1,5 +1,6 @@
 const { successResponse, errorResponse } = require('../utils/response_handler');
 const prisma = require('../../database/prisma');
+const tcpService = require('../../tcp/tcp_service');
 
 class RelayController {
     // Turn relay ON
@@ -29,24 +30,26 @@ class RelayController {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Send command to device via TCP service
+            // Check if device is connected via TCP
+            const isConnected = tcpService.isDeviceConnected(imei);
+            if (!isConnected) {
+                return errorResponse(res, 'Vehicle not connected. Please try again when vehicle is online.', 400);
+            }
+
+            // Send command to device
             console.log(`Sending relay ON command: HFYD# to IMEI: ${imei}`);
-            
-            // Import TCP service to send actual command
-            const tcpService = require('../../tcp/tcp_service');
             const commandResult = await tcpService.sendCommand(imei, 'HFYD#');
             
             if (!commandResult.success) {
                 return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
             }
             
-            // Don't update database yet - wait for device response
-            // The database will be updated when the device sends status update
+            // Return success - device will update status via TCP
             return successResponse(res, {
-                relayStatus: 'PENDING',
+                relayStatus: 'COMMAND_SENT',
                 command: 'HFYD#',
-                message: 'Relay ON command sent successfully. Status will update when device responds.',
-                deviceResponse: commandResult
+                message: 'Relay ON command sent successfully. Status will update shortly.',
+                deviceConnected: true
             });
 
         } catch (error) {
@@ -82,24 +85,26 @@ class RelayController {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Send command to device via TCP service
+            // Check if device is connected via TCP
+            const isConnected = tcpService.isDeviceConnected(imei);
+            if (!isConnected) {
+                return errorResponse(res, 'Vehicle not connected. Please try again when vehicle is online.', 400);
+            }
+
+            // Send command to device
             console.log(`Sending relay OFF command: DYD# to IMEI: ${imei}`);
-            
-            // Import TCP service to send actual command
-            const tcpService = require('../../tcp/tcp_service');
             const commandResult = await tcpService.sendCommand(imei, 'DYD#');
             
             if (!commandResult.success) {
                 return errorResponse(res, `Failed to send command: ${commandResult.error}`, 500);
             }
             
-            // Don't update database yet - wait for device response
-            // The database will be updated when the device sends status update
+            // Return success - device will update status via TCP
             return successResponse(res, {
-                relayStatus: 'PENDING',
+                relayStatus: 'COMMAND_SENT',
                 command: 'DYD#',
-                message: 'Relay OFF command sent successfully. Status will update when device responds.',
-                deviceResponse: commandResult
+                message: 'Relay OFF command sent successfully. Status will update shortly.',
+                deviceConnected: true
             });
 
         } catch (error) {
@@ -135,7 +140,10 @@ class RelayController {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Get latest status from database (this reflects actual device state)
+            // Check device connection status
+            const isConnected = tcpService.isDeviceConnected(imei);
+            
+            // Get latest status from database
             const latestStatus = await prisma.getClient().status.findFirst({
                 where: { imei: imei },
                 orderBy: { createdAt: 'desc' }
@@ -144,7 +152,8 @@ class RelayController {
             return successResponse(res, {
                 relayStatus: latestStatus?.relay ? 'ON' : 'OFF',
                 lastUpdated: latestStatus?.createdAt,
-                isDeviceConnected: latestStatus ? true : false
+                deviceConnected: isConnected,
+                status: isConnected ? 'ONLINE' : 'OFFLINE'
             });
 
         } catch (error) {
@@ -153,8 +162,7 @@ class RelayController {
         }
     }
 
-    // This method will be called by the GT06 handler when device sends status update
-    // It updates the database with the actual relay state from the device
+    // Update relay status from device (called by GT06 handler)
     static async updateRelayStatusFromDevice(imei, relayStatus, otherStatusData = {}) {
         try {
             // Get the latest status to copy existing values
@@ -169,11 +177,11 @@ class RelayController {
                     where: { id: latestStatus.id },
                     data: { 
                         relay: relayStatus,
-                        ...otherStatusData // Include any other status updates from device
+                        ...otherStatusData
                     }
                 });
             } else {
-                // Create new status if none exists (with default values)
+                // Create new status if none exists
                 await prisma.getClient().status.create({
                     data: {
                         imei: imei,
@@ -188,6 +196,7 @@ class RelayController {
             }
 
             console.log(`Relay status updated from device: IMEI ${imei}, Relay: ${relayStatus ? 'ON' : 'OFF'}`);
+            
         } catch (error) {
             console.error('Update relay status from device error:', error);
             throw error;

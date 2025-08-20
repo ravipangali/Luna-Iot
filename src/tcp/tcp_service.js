@@ -5,6 +5,26 @@ class TCPService {
         this.connections = new Map();
     }
 
+    // Check if device is connected
+    isDeviceConnected(imei) {
+        for (const [id, connection] of this.connections) {
+            if (connection.deviceImei === imei) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Get connection info for device
+    getDeviceConnection(imei) {
+        for (const [id, connection] of this.connections) {
+            if (connection.deviceImei === imei) {
+                return connection;
+            }
+        }
+        return null;
+    }
+
     // Send command to specific device
     async sendCommand(imei, command) {
         try {
@@ -62,6 +82,22 @@ class TCPService {
     // Remove connection
     removeConnection(connectionId) {
         this.connections.delete(connectionId);
+    }
+
+    // Get all connected devices
+    getConnectedDevices() {
+        const devices = [];
+        for (const [id, connection] of this.connections) {
+            if (connection.deviceImei) {
+                devices.push({
+                    imei: connection.deviceImei,
+                    connectedAt: connection.connectedAt,
+                    remoteAddress: connection.remoteAddress,
+                    remotePort: connection.remotePort
+                });
+            }
+        }
+        return devices;
     }
 }
 
