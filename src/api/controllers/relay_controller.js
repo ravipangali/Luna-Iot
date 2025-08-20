@@ -13,7 +13,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.userVehicle.findFirst({
+            const userVehicle = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: user.id,
                     vehicle: {
@@ -59,7 +59,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.userVehicle.findFirst({
+            const userVehicle = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: user.id,
                     vehicle: {
@@ -105,7 +105,7 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            const userVehicle = await prisma.userVehicle.findFirst({
+            const userVehicle = await prisma.getClient().userVehicle.findFirst({
                 where: {
                     userId: user.id,
                     vehicle: {
@@ -122,7 +122,7 @@ class RelayController {
             }
 
             // Get latest status
-            const latestStatus = await prisma.status.findFirst({
+            const latestStatus = await prisma.getClient().status.findFirst({
                 where: { imei: imei },
                 orderBy: { createdAt: 'desc' }
             });
@@ -146,19 +146,27 @@ class RelayController {
                 where: { imei: imei },
                 orderBy: { createdAt: 'desc' }
             });
-    
-            // Create new status with all required fields
-            await prisma.getClient().status.create({
-                data: {
-                    imei: imei,
-                    battery: latestStatus?.battery || 0,
-                    signal: latestStatus?.signal || 0,
-                    ignition: latestStatus?.ignition || false,
-                    charging: latestStatus?.charging || false,
-                    relay: relayStatus,
-                    createdAt: new Date()
-                }
-            });
+
+            if (latestStatus) {
+                // Update existing status instead of creating a new one
+                await prisma.getClient().status.update({
+                    where: { id: latestStatus.id },
+                    data: { relay: relayStatus }
+                });
+            } else {
+                // Create new status if none exists (with default values)
+                await prisma.getClient().status.create({
+                    data: {
+                        imei: imei,
+                        battery: 0,
+                        signal: 0,
+                        ignition: false,
+                        charging: false,
+                        relay: relayStatus,
+                        createdAt: new Date()
+                    }
+                });
+            }
         } catch (error) {
             console.error('Update relay status error:', error);
             throw error; // Re-throw to handle in the calling method
