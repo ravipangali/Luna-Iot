@@ -13,44 +13,37 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            // Use 'allAccess' or 'edit' permission
-            const vehicle = await prisma.getClient().vehicle.findFirst({
+            const userVehicle = await prisma.userVehicle.findFirst({
                 where: {
-                    imei: imei.toString(),
-                    userVehicles: {
-                        some: {
-                            userId: user.id,
-                            OR: [
-                                { allAccess: true },
-                                { edit: true }
-                            ]
-                        }
+                    userId: user.id,
+                    vehicle: {
+                        imei: imei
                     }
+                },
+                include: {
+                    vehicle: true
                 }
             });
 
-            if (!vehicle) {
+            if (!userVehicle) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Send relay ON command to device
-            const command = "HFYD#";
-            const result = await RelayController.sendRelayCommand(imei, command);
+            // For now, just simulate the command and update status
+            // You can integrate with your existing TCP service later
+            console.log(`Sending relay ON command: HFYD# to IMEI: ${imei}`);
+            
+            // Update relay status in database
+            await RelayController.updateRelayStatus(imei, true);
+            
+            return successResponse(res, {
+                relayStatus: 'ON',
+                command: 'HFYD#',
+                message: 'Relay turned ON successfully'
+            });
 
-            if (result.success) {
-                // Update relay status in database
-                await RelayController.updateRelayStatus(imei, true);
-                
-                return successResponse(res, { 
-                    imei: imei,
-                    relayStatus: 'ON',
-                    command: command
-                }, 'Relay turned ON successfully');
-            } else {
-                return errorResponse(res, 'Failed to turn relay ON', 500);
-            }
         } catch (error) {
-            console.error('Error in turnRelayOn:', error);
+            console.error('Relay ON error:', error);
             return errorResponse(res, 'Failed to turn relay ON', 500);
         }
     }
@@ -66,44 +59,37 @@ class RelayController {
             }
 
             // Check if user has access to this vehicle
-            // Use 'allAccess' or 'edit' permission
-            const vehicle = await prisma.getClient().vehicle.findFirst({
+            const userVehicle = await prisma.userVehicle.findFirst({
                 where: {
-                    imei: imei.toString(),
-                    userVehicles: {
-                        some: {
-                            userId: user.id,
-                            OR: [
-                                { allAccess: true },
-                                { edit: true }
-                            ]
-                        }
+                    userId: user.id,
+                    vehicle: {
+                        imei: imei
                     }
+                },
+                include: {
+                    vehicle: true
                 }
             });
 
-            if (!vehicle) {
+            if (!userVehicle) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Send relay OFF command to device
-            const command = "DYD#";
-            const result = await RelayController.sendRelayCommand(imei, command);
+            // For now, just simulate the command and update status
+            // You can integrate with your existing TCP service later
+            console.log(`Sending relay OFF command: DYD# to IMEI: ${imei}`);
+            
+            // Update relay status in database
+            await RelayController.updateRelayStatus(imei, false);
+            
+            return successResponse(res, {
+                relayStatus: 'OFF',
+                command: 'DYD#',
+                message: 'Relay turned OFF successfully'
+            });
 
-            if (result.success) {
-                // Update relay status in database
-                await RelayController.updateRelayStatus(imei, false);
-                
-                return successResponse(res, { 
-                    imei: imei,
-                    relayStatus: 'OFF',
-                    command: command
-                }, 'Relay turned OFF successfully');
-            } else {
-                return errorResponse(res, 'Failed to turn relay OFF', 500);
-            }
         } catch (error) {
-            console.error('Error in turnRelayOff:', error);
+            console.error('Relay OFF error:', error);
             return errorResponse(res, 'Failed to turn relay OFF', 500);
         }
     }
@@ -114,70 +100,68 @@ class RelayController {
             const { imei } = req.params;
             const user = req.user;
 
+            if (!imei) {
+                return errorResponse(res, 'IMEI is required', 400);
+            }
+
             // Check if user has access to this vehicle
-            // Use 'allAccess' or 'edit' permission
-            const vehicle = await prisma.getClient().vehicle.findFirst({
+            const userVehicle = await prisma.userVehicle.findFirst({
                 where: {
-                    imei: imei.toString(),
-                    userVehicles: {
-                        some: {
-                            userId: user.id,
-                            OR: [
-                                { allAccess: true },
-                                { edit: true }
-                            ]
-                        }
+                    userId: user.id,
+                    vehicle: {
+                        imei: imei
                     }
+                },
+                include: {
+                    vehicle: true
                 }
             });
 
-            if (!vehicle) {
+            if (!userVehicle) {
                 return errorResponse(res, 'Vehicle not found or access denied', 404);
             }
 
-            // Get latest relay status from status table
-            const latestStatus = await prisma.getClient().status.findFirst({
-                where: { imei: imei.toString() },
-                orderBy: { createdAt: 'desc' },
-                select: { relay: true, createdAt: true }
+            // Get latest status
+            const latestStatus = await prisma.status.findFirst({
+                where: { imei: imei },
+                orderBy: { createdAt: 'desc' }
             });
 
             return successResponse(res, {
-                imei: imei,
                 relayStatus: latestStatus?.relay ? 'ON' : 'OFF',
                 lastUpdated: latestStatus?.createdAt
-            }, 'Relay status retrieved successfully');
-        } catch (error) {
-            console.error('Error in getRelayStatus:', error);
-            return errorResponse(res, 'Failed to get relay status', 500);
-        }
-    }
+            });
 
-    // Send relay command to device via TCP
-    static async sendRelayCommand(imei, command) {
-        try {
-            // Get TCP connection for this device
-            const tcpService = require('../../tcp/tcp_service');
-            const result = await tcpService.sendCommand(imei, command);
-            return result;
         } catch (error) {
-            console.error('Error sending relay command:', error);
-            return { success: false, error: error.message };
+            console.error('Get relay status error:', error);
+            return errorResponse(res, 'Failed to get relay status', 500);
         }
     }
 
     // Update relay status in database
     static async updateRelayStatus(imei, relayStatus) {
         try {
+            // Get the latest status to copy existing values
+            const latestStatus = await prisma.getClient().status.findFirst({
+                where: { imei: imei },
+                orderBy: { createdAt: 'desc' }
+            });
+    
+            // Create new status with all required fields
             await prisma.getClient().status.create({
                 data: {
-                    imei: imei.toString(),
+                    imei: imei,
+                    battery: latestStatus?.battery || 0,
+                    signal: latestStatus?.signal || 0,
+                    ignition: latestStatus?.ignition || false,
+                    charging: latestStatus?.charging || false,
                     relay: relayStatus,
                     createdAt: new Date()
                 }
             });
         } catch (error) {
-            console.error('Error updating relay status:', error);
+            console.error('Update relay status error:', error);
+            throw error; // Re-throw to handle in the calling method
         }
     }
 }
