@@ -13,7 +13,7 @@ class TCPListener {
         this.server = net.createServer((socket) => {
             const connectionId = `${socket.remoteAddress}:${socket.remotePort}`;
             socketService.deviceMonitoringMessage('connected', null, null, null);
-            
+
             // Store connection info
             const connectionData = {
                 socket: socket,
@@ -34,9 +34,9 @@ class TCPListener {
                 let datahandler = new tcpHandler.DataHandler();
                 datahandler.handleData(data, socket);
 
-                 // Update device IMEI in connection data
-                 if (socket.deviceImei) {
-                    connectionData.deviceImei = socket.deviceImei;                    
+                // Update device IMEI in connection data
+                if (socket.deviceImei) {
+                    connectionData.deviceImei = socket.deviceImei;
                     tcpService.storeConnection(connectionId, connectionData);
                 }
             });
@@ -47,7 +47,7 @@ class TCPListener {
                 this.connections.delete(connectionId);
                 tcpService.removeConnection(connectionId);
             });
-            
+
             // Handle errors
             socket.on('error', (err) => {
                 socketService.deviceMonitoringMessage('disconnected', null, null, null);
@@ -55,6 +55,9 @@ class TCPListener {
                 this.connections.delete(connectionId);
                 tcpService.removeConnection(connectionId);
             });
+
+            socket.setKeepAlive(true, 60000); // 60 seconds
+            socket.setTimeout(300000); // 5 minutes timeout
         });
 
         this.server.listen(port, () => {
@@ -91,7 +94,7 @@ function getConnections() {
     return tcpListener.getConnections();
 }
 
-module.exports= {
+module.exports = {
     startServer,
     getConnectionCount,
     getConnections
