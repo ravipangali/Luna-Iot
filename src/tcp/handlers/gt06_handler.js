@@ -46,7 +46,9 @@ class GT06Handler {
         }
         // IMPORTANT: Set the device IMEI on the socket
         socket.deviceImei = data.imei;
-        console.log(`Device IMEI set on socket: ${data.imei}`);
+        if (data.imei == '352312094623280') {
+            console.log(`Device IMEI set on socket: ${data.imei}`);
+        }
 
         if (data.event.string === 'status') {
             const battery = this.getBattery(data.voltageLevel);
