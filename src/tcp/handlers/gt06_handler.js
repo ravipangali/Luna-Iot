@@ -50,7 +50,7 @@ class GT06Handler {
         if (data.event.string === 'status') {
             const battery = this.getBattery(data.voltageLevel);
             const signal = this.getSignal(data.gsmSigStrength);
-            const nepalTime = datetimeService.getNepalDateTime(data.fixTime);
+            const nepalTime = datetimeService.getNepalDateTime(new Date());
             const statusData = {
                 imei: data.imei.toString(),
                 battery: battery,

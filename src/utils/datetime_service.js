@@ -8,8 +8,8 @@ class DateTimeService {
     }
 
     getNepalDateTime(givenDate) {
-        // const date = new Date(givenDate);
-        const nepalTime = new Date(new Date().getTime() + (5 * 60 + 45) * 60000);
+        const date = new Date(givenDate);
+        const nepalTime = new Date(date.getTime() + (5 * 60 + 45) * 60000);
         return nepalTime;
     }
 }
