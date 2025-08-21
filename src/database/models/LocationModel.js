@@ -1,5 +1,4 @@
 const prisma = require('../prisma')
-const datetimeService = require('../../utils/datetime_service');
 
 
 class LocationModel {
@@ -7,7 +6,6 @@ class LocationModel {
     // Create new location
     async createData(data) {
         try {
-            const nepalTime = datetimeService.nepalTimeDate();
 
             const location = await prisma.getClient().location.create({
                 data: {
@@ -18,7 +16,7 @@ class LocationModel {
                     course: data.course,
                     realTimeGps: data.realTimeGps,
                     satellite: data.satellite || 0,
-                    createdAt: nepalTime
+                    createdAt: data.createdAt
                 }
             });
 

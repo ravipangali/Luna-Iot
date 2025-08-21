@@ -48,14 +48,15 @@ class GT06Handler {
         if (data.event.string === 'status') {
             const battery = this.getBattery(data.voltageLevel);
             const signal = this.getSignal(data.gsmSigStrength);
-            const nepalTime = datetimeService.nepalTimeDate();
+            const nepalTime = datetimeService.getNepalDateTime(data.fixTime);
             const statusData = {
                 imei: data.imei.toString(),
                 battery: battery,
                 signal: signal,
                 ignition: data.terminalInfo.ignition,
                 charging: data.terminalInfo.charging,
-                relay: data.terminalInfo.relayState
+                relay: data.terminalInfo.relayState,
+                createdAt: nepalTime
             };
 
             // Check ignition change and send notification BEFORE saving
@@ -85,7 +86,7 @@ class GT06Handler {
                 socketService.deviceMonitoringMessage('status', data.imei, null, null);
             }
         } else if (data.event.string === 'location') {
-            const nepalTime = datetimeService.nepalTimeDate();
+            const nepalTime = datetimeService.getNepalDateTime(data.fixTime);
             const locationData = {
                 imei: data.imei.toString(),
                 latitude: data.lat,
@@ -93,7 +94,8 @@ class GT06Handler {
                 speed: data.speed,
                 satellite: data.satCnt,
                 course: data.course,
-                realTimeGps: data.realTimeGps
+                realTimeGps: data.realTimeGps,
+                createdAt: nepalTime
             };
 
             // First Phase: Check speed limit and send overspeeding notification

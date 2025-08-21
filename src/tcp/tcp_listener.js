@@ -50,6 +50,13 @@ class TCPListener {
 
             // Handle errors
             socket.on('error', (err) => {
+                const errorMessage = err.message || 'Unknown error';
+                console.error(`[Worker ${process.pid}] Client error for ${connectionId}:`, errorMessage);
+
+                // Log more details for debugging
+                if (err.code === 'ETIMEDOUT') {
+                    console.log(`[Worker ${process.pid}] Connection timeout for device ${socket.deviceImei || 'Unknown'}`);
+                }
                 socketService.deviceMonitoringMessage('disconnected', null, null, null);
                 console.error(`${new Date().toISOString} => CLIENT ERROR =>`, err.message);
                 this.connections.delete(connectionId);
@@ -57,7 +64,16 @@ class TCPListener {
             });
 
             socket.setKeepAlive(true, 60000); // 60 seconds
-            socket.setTimeout(300000); // 5 minutes timeout
+            socket.setTimeout(600000); // Increase to 10 minutes
+
+            // Add timeout handler
+            socket.on('timeout', () => {
+                socketService.deviceMonitoringMessage('disconnected', null, null, null);
+                console.log(`[Worker ${process.pid}] Socket timeout for ${connectionId}`);
+                this.connections.delete(connectionId);
+                tcpService.removeConnection(connectionId);
+                socket.end(); // Gracefully close the connection
+            });
         });
 
         this.server.listen(port, () => {

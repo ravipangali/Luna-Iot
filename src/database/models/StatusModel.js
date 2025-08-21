@@ -1,12 +1,10 @@
 const prisma = require('../prisma')
-const datetimeService = require('../../utils/datetime_service');
 
 class StatusModel {
 
     // Create new status
     async createData(data) {
         try {
-            const nepalTime = datetimeService.nepalTimeDate();
             const status = await prisma.getClient().status.create({
                 data: {
                     imei: data.imei.toString(),
@@ -15,12 +13,12 @@ class StatusModel {
                     ignition: data.ignition,
                     charging: data.charging,
                     relay: data.relay,
-                    createdAt: nepalTime
+                    createdAt: data.createdAt
                 }
             });
             // If ignition is off, create a new location record with speed = 0
             if (data.ignition === false) {
-                await this.createIgnitionOffLocation(data.imei.toString());
+                await this.createIgnitionOffLocation(data.imei.toString(), data.createdAt);
             }
             return status;
         } catch (error) {
@@ -30,7 +28,7 @@ class StatusModel {
     }
 
     // Create location record when ignition is off
-    async createIgnitionOffLocation(imei) {
+    async createIgnitionOffLocation(imei, createdAt) {
         try {
             // Get the latest location data for this IMEI
             const latestLocation = await prisma.getClient().location.findFirst({
@@ -39,7 +37,6 @@ class StatusModel {
             });
 
             if (latestLocation) {
-                const nepalTime = datetimeService.nepalTimeDate();
                 // Create new location record with same data but speed = 0
                 const newLocation = await prisma.getClient().location.create({
                     data: {
@@ -50,7 +47,7 @@ class StatusModel {
                         course: latestLocation.course,
                         realTimeGps: latestLocation.realTimeGps,
                         satellite: latestLocation.satellite,
-                        createdAt: nepalTime
+                        createdAt: createdAt
                     }
                 });
 

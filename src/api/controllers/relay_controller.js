@@ -94,9 +94,9 @@ class RelayController {
             }
 
             // Check if device is connected via TCP
-            // if (!tcpService.isDeviceConnected(imei)) {
-            //     return errorResponse(res, 'Vehicle not connected. Please try again later.', 503);
-            // }
+            if (!tcpService.isDeviceConnected(imei)) {
+                return errorResponse(res, 'Vehicle not connected. Please try again later.', 503);
+            }
 
             // Send relay command to device
             const commandResult = await tcpService.sendRelayCommand(imei, 'OFF');
