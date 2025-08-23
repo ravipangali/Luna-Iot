@@ -74,26 +74,23 @@ class LocationController {
             console.log('Raw startDate:', startDate);
             console.log('Raw endDate:', endDate);
 
-            // CRITICAL FIX: Use moment.js for proper timezone handling
-            // Parse dates as Nepal timezone and convert to UTC
-            const nepalStart = moment.tz(startDate, 'Asia/Kathmandu');
-            const nepalEnd = moment.tz(endDate, 'Asia/Kathmandu');
+            // CRITICAL FIX: Simple date string approach
+            // Convert date strings to Date objects with specific times
 
-            console.log('Nepal time start:', nepalStart.format());
-            console.log('Nepal time end:', nepalEnd.format());
+            // Start date: 12:00:01 AM (beginning of day)
+            const start = new Date(startDate + 'T12:00:01');
 
-            // Convert to UTC for database query
-            const utcStart = nepalStart.utc().toDate();
-            const utcEnd = nepalEnd.utc().toDate();
+            // End date: 11:59:59 PM (end of day)  
+            const end = new Date(endDate + 'T23:59:59');
 
-            console.log('UTC start for DB:', utcStart.toISOString());
-            console.log('UTC end for DB:', utcEnd.toISOString());
+            console.log('Converted start:', start.toISOString());
+            console.log('Converted end:', end.toISOString());
 
             const locationModel = new LocationModel();
             const combinedData = await locationModel.getCombinedHistoryByDateRange(
                 imei,
-                utcStart,
-                utcEnd
+                start,
+                end
             );
 
             return successResponse(res, combinedData, 'Combined history data retrieved successfully');
