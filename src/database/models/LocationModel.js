@@ -102,10 +102,6 @@ class LocationModel {
     async getCombinedHistoryByDateRange(imei, startDate, endDate) {
         imei = imei.toString();
         try {
-            console.log(`Querying for IMEI: ${imei}`);
-            console.log(`Start Date: ${startDate.toISOString()}`);
-            console.log(`End Date: ${endDate.toISOString()}`);
-            
             // Get location data with strict date filtering
             const locations = await prisma.getClient().location.findMany({
                 where: {
@@ -120,7 +116,6 @@ class LocationModel {
                 }
             });
     
-            console.log(`Found ${locations.length} location records`);
             
             // Get status data with strict date filtering
             const statuses = await prisma.getClient().status.findMany({

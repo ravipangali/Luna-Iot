@@ -70,21 +70,11 @@ class LocationController {
                 return errorResponse(res, 'Start date and end date are required', 400);
             }
 
-            console.log('=== DATE DEBUG ===');
-            console.log('Raw startDate:', startDate);
-            console.log('Raw endDate:', endDate);
-
-            // CRITICAL FIX: Simple date string approach
-            // Convert date strings to Date objects with specific times
-
             // Start date: 12:00:01 AM (beginning of day)
             const start = new Date(startDate + 'T12:00:01');
 
             // End date: 11:59:59 PM (end of day)  
             const end = new Date(endDate + 'T23:59:59');
-
-            console.log('Converted start:', start.toISOString());
-            console.log('Converted end:', end.toISOString());
 
             const locationModel = new LocationModel();
             const combinedData = await locationModel.getCombinedHistoryByDateRange(
