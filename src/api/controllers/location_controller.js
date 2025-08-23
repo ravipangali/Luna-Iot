@@ -1,4 +1,5 @@
 // src/api/controllers/location_controller.js
+const moment = require('moment-timezone');
 const LocationModel = require('../../database/models/LocationModel');
 const { successResponse, errorResponse } = require('../utils/response_handler');
 
@@ -9,7 +10,7 @@ class LocationController {
             const { imei } = req.params;
             const locationModel = new LocationModel();
             const locations = await locationModel.getDataByImei(imei);
-            
+
             return successResponse(res, locations, 'Location history retrieved successfully');
         } catch (error) {
             console.error('Error in getLocationByImei:', error);
@@ -23,11 +24,11 @@ class LocationController {
             const { imei } = req.params;
             const locationModel = new LocationModel();
             const location = await locationModel.getLatest(imei);
-            
+
             if (!location) {
                 return errorResponse(res, 'No location data found', 404);
             }
-            
+
             return successResponse(res, location, 'Latest location retrieved successfully');
         } catch (error) {
             console.error('Error in getLatestLocation:', error);
@@ -40,18 +41,18 @@ class LocationController {
         try {
             const { imei } = req.params;
             const { startDate, endDate } = req.query;
-            
+
             if (!startDate || !endDate) {
                 return errorResponse(res, 'Start date and end date are required', 400);
             }
-            
+
             const locationModel = new LocationModel();
             const locations = await locationModel.getDataByDateRange(
-                imei, 
-                new Date(startDate), 
+                imei,
+                new Date(startDate),
                 new Date(endDate)
             );
-            
+
             return successResponse(res, locations, 'Location data retrieved successfully');
         } catch (error) {
             console.error('Error in getLocationByDateRange:', error);
@@ -64,39 +65,37 @@ class LocationController {
         try {
             const { imei } = req.params;
             const { startDate, endDate } = req.query;
-            
+
             if (!startDate || !endDate) {
                 return errorResponse(res, 'Start date and end date are required', 400);
             }
-            
+
             console.log('=== DATE DEBUG ===');
             console.log('Raw startDate:', startDate);
             console.log('Raw endDate:', endDate);
-            
-            // Parse dates and ensure they're in the correct timezone
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            
-            console.log('Parsed start:', start.toISOString());
-            console.log('Parsed end:', end.toISOString());
-            
-            // Ensure start date is at beginning of day (00:00:00)
-            start.setHours(0, 0, 0, 0);
-            
-            // Ensure end date is at end of day (23:59:59.999)
-            end.setHours(23, 59, 59, 999);
-            
-            console.log('Adjusted start:', start.toISOString());
-            console.log('Adjusted end:', end.toISOString());
-            console.log('==================');
-            
+
+            // CRITICAL FIX: Use moment.js for proper timezone handling
+            // Parse dates as Nepal timezone and convert to UTC
+            const nepalStart = moment.tz(startDate, 'Asia/Kathmandu');
+            const nepalEnd = moment.tz(endDate, 'Asia/Kathmandu');
+
+            console.log('Nepal time start:', nepalStart.format());
+            console.log('Nepal time end:', nepalEnd.format());
+
+            // Convert to UTC for database query
+            const utcStart = nepalStart.utc().toDate();
+            const utcEnd = nepalEnd.utc().toDate();
+
+            console.log('UTC start for DB:', utcStart.toISOString());
+            console.log('UTC end for DB:', utcEnd.toISOString());
+
             const locationModel = new LocationModel();
             const combinedData = await locationModel.getCombinedHistoryByDateRange(
-                imei, 
-                start, 
-                end
+                imei,
+                utcStart,
+                utcEnd
             );
-            
+
             return successResponse(res, combinedData, 'Combined history data retrieved successfully');
         } catch (error) {
             console.error('Error in getCombinedHistoryByDateRange:', error);
@@ -109,7 +108,7 @@ class LocationController {
         try {
             const { imei } = req.params;
             const { startDate, endDate } = req.query;
-            
+
             if (!startDate || !endDate) {
                 return errorResponse(res, 'Start date and end date are required', 400);
             }
@@ -119,18 +118,18 @@ class LocationController {
             const end = new Date(endDate);
             const threeMonthsAgo = new Date();
             threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-            
+
             if (start < threeMonthsAgo) {
                 return errorResponse(res, 'Date range cannot exceed 3 months', 400);
             }
-            
+
             const locationModel = new LocationModel();
             const reportData = await locationModel.generateReportData(
-                imei, 
-                start, 
+                imei,
+                start,
                 end
             );
-            
+
             return successResponse(res, reportData, 'Report generated successfully');
         } catch (error) {
             console.error('Error in generateReport:', error);
