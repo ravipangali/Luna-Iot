@@ -69,15 +69,26 @@ class LocationController {
                 return errorResponse(res, 'Start date and end date are required', 400);
             }
             
-            // Fix: Parse dates and ensure they're in the correct timezone
+            console.log('=== DATE DEBUG ===');
+            console.log('Raw startDate:', startDate);
+            console.log('Raw endDate:', endDate);
+            
+            // Parse dates and ensure they're in the correct timezone
             const start = new Date(startDate);
             const end = new Date(endDate);
+            
+            console.log('Parsed start:', start.toISOString());
+            console.log('Parsed end:', end.toISOString());
             
             // Ensure start date is at beginning of day (00:00:00)
             start.setHours(0, 0, 0, 0);
             
             // Ensure end date is at end of day (23:59:59.999)
             end.setHours(23, 59, 59, 999);
+            
+            console.log('Adjusted start:', start.toISOString());
+            console.log('Adjusted end:', end.toISOString());
+            console.log('==================');
             
             const locationModel = new LocationModel();
             const combinedData = await locationModel.getCombinedHistoryByDateRange(

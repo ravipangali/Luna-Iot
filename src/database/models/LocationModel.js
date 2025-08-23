@@ -98,15 +98,25 @@ class LocationModel {
         }
     }
 
-    // Get combined history data (location + status with ignition off, only 3 fields for status)
+    // Get combined history data (location + status with ignition off)
     async getCombinedHistoryByDateRange(imei, startDate, endDate) {
         imei = imei.toString();
         try {
-            // Fix: Ensure dates are properly formatted for database query
+            // CRITICAL FIX: Use proper date boundaries with timezone handling
             const start = new Date(startDate);
             const end = new Date(endDate);
-            
-            // Get location data
+
+            // Ensure start date is at beginning of day in Nepal timezone
+            start.setUTCHours(0, 0, 0, 0);
+
+            // Ensure end date is at end of day in Nepal timezone  
+            end.setUTCHours(23, 59, 59, 999);
+
+            console.log(`Querying for IMEI: ${imei}`);
+            console.log(`Start Date: ${start.toISOString()}`);
+            console.log(`End Date: ${end.toISOString()}`);
+
+            // Get location data with strict date filtering
             const locations = await prisma.getClient().location.findMany({
                 where: {
                     imei,
@@ -119,8 +129,10 @@ class LocationModel {
                     createdAt: 'asc'
                 }
             });
-    
-            // Get status data with ignition off
+
+            console.log(`Found ${locations.length} location records`);
+
+            // Get status data with strict date filtering
             const statuses = await prisma.getClient().status.findMany({
                 where: {
                     imei,
@@ -134,21 +146,36 @@ class LocationModel {
                     createdAt: 'asc'
                 }
             });
-    
+
+            console.log(`Found ${statuses.length} status records`);
+
+            // CRITICAL: Double-check dates before returning
+            const filteredLocations = locations.filter(loc => {
+                const locDate = new Date(loc.createdAt);
+                return locDate >= start && locDate <= end;
+            });
+
+            const filteredStatuses = statuses.filter(status => {
+                const statusDate = new Date(status.createdAt);
+                return statusDate >= start && statusDate <= end;
+            });
+
+            console.log(`After filtering: ${filteredLocations.length} locations, ${filteredStatuses.length} statuses`);
+
             // Combine and sort by createdAt
             const combinedData = [
-                ...locations.map(loc => ({
+                ...filteredLocations.map(loc => ({
                     ...loc,
                     type: 'location',
                     dataType: 'location'
                 })),
-                ...statuses.map(status => ({
+                ...filteredStatuses.map(status => ({
                     ...status,
                     type: 'status',
                     dataType: 'status'
                 }))
             ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    
+
             return combinedData;
         } catch (error) {
             console.error('ERROR FETCHING COMBINED HISTORY: ', error);
@@ -443,7 +470,7 @@ class LocationModel {
         }
     }
 
-    
+
 }
 
 module.exports = LocationModel
